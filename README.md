@@ -5,11 +5,20 @@ Cippie is a modern C++23 build system, project manager, and package manager.
 ## Usage
 
 ```bash
+# Create a new project
+cippie new <name>
+
 # Build the default or specified target
 cippie build [target]
 
-# Build and run target, forwarding arguments after --
+# Build and run an executable target, forwarding arguments after --
 cippie run [target] [-- program arguments...]
+
+# Build and run test targets
+cippie test [target]
+
+# Remove generated build files (.cippie/build)
+cippie clean
 ```
 
 ## Bootstrap build

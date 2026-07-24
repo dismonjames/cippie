@@ -15,6 +15,8 @@ namespace cippie
         projectKeyword,
         executableKeyword,
         libraryKeyword,
+        staticLibraryKeyword,
+        sharedLibraryKeyword,
         testKeyword,
         packageKeyword,
         dependencyKeyword,
@@ -54,6 +56,10 @@ namespace cippie
                 return "executable";
             case TokenKind::libraryKeyword:
                 return "library";
+            case TokenKind::staticLibraryKeyword:
+                return "static_library";
+            case TokenKind::sharedLibraryKeyword:
+                return "shared_library";
             case TokenKind::testKeyword:
                 return "test";
             case TokenKind::packageKeyword:

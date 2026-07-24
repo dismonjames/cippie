@@ -14,6 +14,7 @@ namespace cippie
         run,
         test,
         clean,
+        newProject,
         unknown
     };
 

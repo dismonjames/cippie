@@ -28,15 +28,13 @@ project("MyProject") {
         package("nlohmann-json", "^3.12.0")
     ];
 
-    library("core") {
-        type = static;
-
+    static_library("core") {
         sources = [
             "src/core/**/*.cpp"
         ];
 
         includes = [
-            "include"
+            "src/core"
         ];
 
         publicIncludes = [
@@ -45,6 +43,16 @@ project("MyProject") {
 
         defines = [
             "MY_SUITE_CORE"
+        ];
+    }
+
+    shared_library("util") {
+        sources = [
+            "src/util/**/*.cpp"
+        ];
+
+        publicIncludes = [
+            "include"
         ];
     }
 
@@ -57,11 +65,32 @@ project("MyProject") {
 
         links = [
             "core",
+            "util",
             dependency("fmt")
+        ];
+    }
+
+    test("unit_tests") {
+        entry = "tests/unit_main.cpp";
+
+        sources = [
+            "tests/**/*.cpp"
+        ];
+
+        links = [
+            "core"
         ];
     }
 }
 ```
+
+## Supported Target Declaration Kinds
+
+- `executable("<name>") { ... }`: Executable binary target.
+- `static_library("<name>") { ... }`: Static library target (`lib<name>.a`).
+- `shared_library("<name>") { ... }`: Shared library target (`lib<name>.so`).
+- `library("<name>") { type = "static" | "shared"; ... }`: Generic library target block.
+- `test("<name>") { ... }`: Test executable target executed by `cippie test`.
 
 ## Frontend Pipeline
 

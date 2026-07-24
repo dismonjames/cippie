@@ -381,6 +381,16 @@ namespace cippie
             target.type = TargetType::executable;
             typeSet = true;
         }
+        else if (targetAst.targetKind == "static_library")
+        {
+            target.type = TargetType::staticLibrary;
+            typeSet = true;
+        }
+        else if (targetAst.targetKind == "shared_library")
+        {
+            target.type = TargetType::sharedLibrary;
+            typeSet = true;
+        }
         else if (targetAst.targetKind == "test")
         {
             target.type = TargetType::test;
@@ -493,7 +503,7 @@ namespace cippie
                             }
                         }
                     }
-                    else if (assign->key == "publicIncludes")
+                    else if (assign->key == "publicIncludes" || assign->key == "public_includes")
                     {
                         std::vector<std::string> incs;
                         if (!getStringArray(assign->value, incs))

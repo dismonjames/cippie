@@ -13,10 +13,11 @@ namespace cippie
     private:
         [[nodiscard]] int dispatch(const CommandLine& commandLine);
 
-        [[nodiscard]] int buildProject(
-            const CommandLine& commandLine,
-            bool runAfterBuild
-        );
+        [[nodiscard]] int buildProject(const CommandLine& commandLine);
+        [[nodiscard]] int runProject(const CommandLine& commandLine);
+        [[nodiscard]] int testProject(const CommandLine& commandLine);
+        [[nodiscard]] int cleanProject(const CommandLine& commandLine);
+        [[nodiscard]] int createNewProject(const CommandLine& commandLine);
 
         void printHelp() const;
         void printVersion() const;

@@ -17,8 +17,10 @@ add_library(
     cippie_core
     src/app/Application.cpp
     src/build/BuildEngine.cpp
+    src/build/BuildGraph.cpp
     src/build/BuildPlanner.cpp
     src/build/SourceScanner.cpp
+    src/build/TargetBuilder.cpp
     src/cache/BuildCache.cpp
     src/cli/CommandLine.cpp
     src/config/ConfigLoader.cpp
@@ -31,10 +33,12 @@ add_library(
     src/platform/Platform.cpp
     src/platform/linux/LinuxProcessRunner.cpp
     src/process/Process.cpp
+    src/project/ProjectGenerator.cpp
     src/project/ProjectLocator.cpp
     src/project/TargetSelector.cpp
     src/toolchain/TargetTriple.cpp
     src/toolchain/ToolchainDetector.cpp
+    src/util/CleanRunner.cpp
     src/util/Path.cpp
 )
 
@@ -121,6 +125,41 @@ if(CIPPIE_BUILD_TESTS)
     target_link_libraries(cippie_process_runner_tests PRIVATE cippie_core)
     add_test(NAME process_runner COMMAND cippie_process_runner_tests)
 
+    add_executable(
+        cippie_build_graph_tests
+        tests/unit/BuildGraphTests.cpp
+    )
+    target_link_libraries(cippie_build_graph_tests PRIVATE cippie_core)
+    add_test(NAME build_graph COMMAND cippie_build_graph_tests)
+
+    add_executable(
+        cippie_include_propagation_tests
+        tests/unit/IncludePropagationTests.cpp
+    )
+    target_link_libraries(cippie_include_propagation_tests PRIVATE cippie_core)
+    add_test(NAME include_propagation COMMAND cippie_include_propagation_tests)
+
+    add_executable(
+        cippie_artifact_naming_tests
+        tests/unit/ArtifactNamingTests.cpp
+    )
+    target_link_libraries(cippie_artifact_naming_tests PRIVATE cippie_core)
+    add_test(NAME artifact_naming COMMAND cippie_artifact_naming_tests)
+
+    add_executable(
+        cippie_clean_safety_tests
+        tests/unit/CleanSafetyTests.cpp
+    )
+    target_link_libraries(cippie_clean_safety_tests PRIVATE cippie_core)
+    add_test(NAME clean_safety COMMAND cippie_clean_safety_tests)
+
+    add_executable(
+        cippie_project_name_tests
+        tests/unit/ProjectNameTests.cpp
+    )
+    target_link_libraries(cippie_project_name_tests PRIVATE cippie_core)
+    add_test(NAME project_name COMMAND cippie_project_name_tests)
+
     add_test(
         NAME smoke
         COMMAND
@@ -167,6 +206,48 @@ if(CIPPIE_BUILD_TESTS)
         NAME invalid_config
         COMMAND
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/InvalidConfigTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME static_library
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/StaticLibraryTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME shared_library
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/SharedLibraryTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME multi_exec_static_lib
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/MultiExecStaticLibTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME test_target
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/TestTargetTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME project_new
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/ProjectNewTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME clean
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/CleanTest.sh"
             "$<TARGET_FILE:cippie>"
     )
 endif()

@@ -35,17 +35,20 @@ int main()
     cippie::BuildPlanner planner;
     auto plan = planner.create(project, target, toolchain, "debug");
 
-    assert(plan.compileCommands.size() == 2);
+    assert(plan.targetPlans.size() == 1);
+    const auto& tPlan = plan.targetPlans[0];
+    assert(tPlan.compileCommands.size() == 2);
 
-    const auto obj0 = plan.compileCommands[0].object.string();
-    const auto obj1 = plan.compileCommands[1].object.string();
+    const auto obj0 = tPlan.compileCommands[0].object.string();
+    const auto obj1 = tPlan.compileCommands[1].object.string();
 
     assert(obj0 != obj1);
     assert(obj0.find("apps/client/App.cpp.o") != std::string::npos);
     assert(obj1.find("src/core/App.cpp.o") != std::string::npos);
 
     // Verify bin path
-    const auto binPath = plan.linkCommand.output.string();
+    assert(tPlan.linkCommand.has_value());
+    const auto binPath = tPlan.linkCommand->output.string();
     assert(binPath.find(".cippie/build/x86_64-linux-gnu/debug/client/bin/client") != std::string::npos);
 
     std::filesystem::remove_all(root);

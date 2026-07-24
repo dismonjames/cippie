@@ -38,6 +38,11 @@ namespace cippie
                 return CommandType::clean;
             }
 
+            if (value == "new")
+            {
+                return CommandType::newProject;
+            }
+
             return CommandType::unknown;
         }
     }

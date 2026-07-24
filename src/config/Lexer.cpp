@@ -306,6 +306,14 @@ namespace cippie
         {
             addToken(TokenKind::libraryKeyword);
         }
+        else if (text == "static_library")
+        {
+            addToken(TokenKind::staticLibraryKeyword);
+        }
+        else if (text == "shared_library")
+        {
+            addToken(TokenKind::sharedLibraryKeyword);
+        }
         else if (text == "test")
         {
             addToken(TokenKind::testKeyword);

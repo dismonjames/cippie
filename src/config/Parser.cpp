@@ -264,6 +264,8 @@ namespace cippie
     {
         if (check(TokenKind::executableKeyword) ||
             check(TokenKind::libraryKeyword) ||
+            check(TokenKind::staticLibraryKeyword) ||
+            check(TokenKind::sharedLibraryKeyword) ||
             check(TokenKind::testKeyword))
         {
             const Token kwToken = advance();
