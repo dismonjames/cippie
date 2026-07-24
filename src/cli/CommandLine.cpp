@@ -1,5 +1,6 @@
 #include <cippie/cli/CommandLine.hpp>
 
+#include <charconv>
 #include <string_view>
 
 namespace cippie
@@ -45,6 +46,23 @@ namespace cippie
 
             return CommandType::unknown;
         }
+
+        bool parseJobCount(std::string_view val, unsigned int& outJobs)
+        {
+            if (val.empty()) return false;
+            unsigned int parsed = 0;
+            auto res = std::from_chars(val.data(), val.data() + val.size(), parsed);
+            if (res.ec != std::errc() || res.ptr != val.data() + val.size() || parsed == 0)
+            {
+                return false;
+            }
+            if (parsed > 128)
+            {
+                parsed = 128;
+            }
+            outJobs = parsed;
+            return true;
+        }
     }
 
     CommandLine CommandLineParser::parse(
@@ -77,6 +95,61 @@ namespace cippie
             if (forwardingArguments)
             {
                 result.forwardedArguments.emplace_back(argument);
+                continue;
+            }
+
+            if (argument == "-v" || argument == "--verbose")
+            {
+                result.verbose = true;
+                continue;
+            }
+
+            if (argument == "--cache")
+            {
+                result.cleanCacheOnly = true;
+                continue;
+            }
+
+            if (argument == "--all")
+            {
+                result.cleanAll = true;
+                continue;
+            }
+
+            if (argument == "-j" || argument == "--jobs")
+            {
+                if (index + 1 < argc)
+                {
+                    ++index;
+                    if (!parseJobCount(argv[index], result.jobs))
+                    {
+                        result.type = CommandType::unknown;
+                    }
+                }
+                else
+                {
+                    result.type = CommandType::unknown;
+                }
+                continue;
+            }
+
+            if (argument.starts_with("-j"))
+            {
+                std::string_view numStr = argument.substr(2);
+                if (!parseJobCount(numStr, result.jobs))
+                {
+                    result.type = CommandType::unknown;
+                }
+                continue;
+            }
+
+            if (argument.starts_with("--jobs="))
+            {
+                std::string_view numStr = argument.substr(7);
+                if (!parseJobCount(numStr, result.jobs))
+                {
+                    result.type = CommandType::unknown;
+                }
                 continue;
             }
 

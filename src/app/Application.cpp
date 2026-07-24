@@ -10,6 +10,7 @@
 #include <cippie/project/ProjectLocator.hpp>
 #include <cippie/project/TargetSelector.hpp>
 #include <cippie/toolchain/ToolchainDetector.hpp>
+#include <cippie/util/BuildLock.hpp>
 #include <cippie/util/CleanRunner.hpp>
 
 #include <filesystem>
@@ -87,6 +88,13 @@ namespace cippie
             return toInt(ExitCode::projectNotFound);
         }
 
+        auto lockRes = BuildLock::acquire(*projectRoot);
+        if (!lockRes.has_value())
+        {
+            logger_.error(lockRes.error().message);
+            return toInt(ExitCode::generalError);
+        }
+
         ConfigLoader configLoader;
         auto projectResult = configLoader.load(*projectRoot);
 
@@ -116,7 +124,7 @@ namespace cippie
         const auto plan = planner.create(project, *selectedTarget, toolchain, "debug");
 
         BuildEngine engine(logger_);
-        if (!engine.execute(plan, toolchain))
+        if (!engine.execute(plan, toolchain, commandLine.jobs, commandLine.verbose))
         {
             return toInt(ExitCode::buildFailed);
         }
@@ -135,6 +143,13 @@ namespace cippie
                 "Cippiefile was not found in this directory or any parent directory"
             );
             return toInt(ExitCode::projectNotFound);
+        }
+
+        auto lockRes = BuildLock::acquire(*projectRoot);
+        if (!lockRes.has_value())
+        {
+            logger_.error(lockRes.error().message);
+            return toInt(ExitCode::generalError);
         }
 
         ConfigLoader configLoader;
@@ -166,12 +181,11 @@ namespace cippie
         const auto plan = planner.create(project, *selectedTarget, toolchain, "debug");
 
         BuildEngine engine(logger_);
-        if (!engine.execute(plan, toolchain))
+        if (!engine.execute(plan, toolchain, commandLine.jobs, commandLine.verbose))
         {
             return toInt(ExitCode::buildFailed);
         }
 
-        // Find root target plan artifact
         const TargetBuildPlan* rootPlan = nullptr;
         for (const auto& tPlan : plan.targetPlans)
         {
@@ -210,6 +224,13 @@ namespace cippie
             return toInt(ExitCode::projectNotFound);
         }
 
+        auto lockRes = BuildLock::acquire(*projectRoot);
+        if (!lockRes.has_value())
+        {
+            logger_.error(lockRes.error().message);
+            return toInt(ExitCode::generalError);
+        }
+
         ConfigLoader configLoader;
         auto projectResult = configLoader.load(*projectRoot);
 
@@ -244,7 +265,7 @@ namespace cippie
             BuildPlanner planner;
             const auto plan = planner.create(project, *testTarget, toolchain, "debug");
 
-            if (!engine.execute(plan, toolchain))
+            if (!engine.execute(plan, toolchain, commandLine.jobs, commandLine.verbose))
             {
                 logger_.error("build failed for test target: " + testTarget->name);
                 return toInt(ExitCode::buildFailed);
@@ -295,7 +316,7 @@ namespace cippie
 
         std::cout << failedCount << " test target" << (failedCount == 1 ? "" : "s")
                   << " failed (" << passedCount << " passed)\n";
-        return 7; // ExitCode for test failure (7 per spec Section 32)
+        return 7;
     }
 
     int Application::cleanProject(const CommandLine& commandLine)
@@ -312,7 +333,7 @@ namespace cippie
         }
 
         CleanRunner cleanRunner(logger_);
-        auto res = cleanRunner.clean(*projectRoot);
+        auto res = cleanRunner.clean(*projectRoot, commandLine.cleanCacheOnly, commandLine.cleanAll);
 
         if (!res.has_value())
         {
@@ -349,15 +370,18 @@ namespace cippie
         std::cout
             << "Cippie - C++ build system and package manager\n\n"
             << "Usage:\n"
-            << "  cippie <command> [target] [-- arguments]\n\n"
+            << "  cippie <command> [target] [-j N] [-v] [-- arguments]\n\n"
             << "Commands:\n"
             << "  new <name>  Create a new Cippie project\n"
             << "  build       Build a target\n"
             << "  run         Build and run a target\n"
             << "  test        Build and run tests\n"
-            << "  clean       Remove generated build files\n"
+            << "  clean       Remove generated build files (--cache / --all)\n"
             << "  help        Show this help\n"
-            << "  version     Show the Cippie version\n";
+            << "  version     Show the Cippie version\n\n"
+            << "Options:\n"
+            << "  -j, --jobs N   Number of parallel build workers\n"
+            << "  -v, --verbose  Verbose build output\n";
     }
 
     void Application::printVersion() const

@@ -24,6 +24,10 @@ namespace cippie
         std::string target;
         std::filesystem::path workingDirectory;
         std::vector<std::string> forwardedArguments;
+        unsigned int jobs{0}; // 0 = default to hardware concurrency
+        bool verbose{false};
+        bool cleanCacheOnly{false};
+        bool cleanAll{false};
     };
 
     class CommandLineParser

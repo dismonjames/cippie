@@ -18,7 +18,9 @@ namespace cippie
         ) noexcept;
 
         [[nodiscard]] Result<void> clean(
-            const std::filesystem::path& projectRoot
+            const std::filesystem::path& projectRoot,
+            bool cacheOnly = false,
+            bool cleanAll = false
         ) const;
 
     private:

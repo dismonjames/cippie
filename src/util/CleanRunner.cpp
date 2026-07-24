@@ -28,7 +28,7 @@ namespace cippie
             return false;
         }
 
-        // Must be non-empty and inside project root under .cippie/build
+        // Must be non-empty and inside project root under .cippie
         if (canonicalTarget.empty() || canonicalTarget == "/" || canonicalTarget == canonicalRoot)
         {
             return false;
@@ -44,9 +44,8 @@ namespace cippie
             }
         }
 
-        // Ensure canonicalTarget contains .cippie/build
         const std::string targetStr = canonicalTarget.string();
-        const std::string expectedSub = (canonicalRoot / ".cippie/build").string();
+        const std::string expectedSub = (canonicalRoot / ".cippie").string();
 
         if (targetStr.rfind(expectedSub, 0) != 0 && targetStr != expectedSub)
         {
@@ -70,10 +69,57 @@ namespace cippie
         return true;
     }
 
-    Result<void> CleanRunner::clean(const std::filesystem::path& projectRoot) const
+    Result<void> CleanRunner::clean(
+        const std::filesystem::path& projectRoot,
+        bool cacheOnly,
+        bool cleanAll
+    ) const
     {
-        const auto buildDirectory = projectRoot / ".cippie/build";
+        std::error_code ec;
 
+        if (cleanAll)
+        {
+            const auto targetDir = projectRoot / ".cippie";
+            if (!isSafeToDelete(targetDir, projectRoot))
+            {
+                return std::unexpected(Error{
+                    .code = ErrorCode::validationFailed,
+                    .message = "unsafe deletion target: " + targetDir.string(),
+                    .location = std::nullopt,
+                    .notes = {}
+                });
+            }
+
+            if (std::filesystem::exists(targetDir, ec))
+            {
+                std::filesystem::remove_all(targetDir, ec);
+                if (ec)
+                {
+                    return std::unexpected(Error{
+                        .code = ErrorCode::fileReadFailed,
+                        .message = "failed to clean directory: " + ec.message(),
+                        .location = std::nullopt,
+                        .notes = {}
+                    });
+                }
+            }
+            logger_.info("Removed .cippie");
+            return {};
+        }
+
+        if (cacheOnly)
+        {
+            const auto cacheDir = projectRoot / ".cippie/cache";
+            const auto manifestsDir = projectRoot / ".cippie/manifests";
+
+            if (std::filesystem::exists(cacheDir, ec)) std::filesystem::remove_all(cacheDir, ec);
+            if (std::filesystem::exists(manifestsDir, ec)) std::filesystem::remove_all(manifestsDir, ec);
+
+            logger_.info("Removed .cippie cache and manifests");
+            return {};
+        }
+
+        const auto buildDirectory = projectRoot / ".cippie/build";
         if (!isSafeToDelete(buildDirectory, projectRoot))
         {
             return std::unexpected(Error{
@@ -84,7 +130,6 @@ namespace cippie
             });
         }
 
-        std::error_code ec;
         if (std::filesystem::exists(buildDirectory, ec))
         {
             std::filesystem::remove_all(buildDirectory, ec);

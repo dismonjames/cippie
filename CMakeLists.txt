@@ -21,7 +21,12 @@ add_library(
     src/build/BuildPlanner.cpp
     src/build/SourceScanner.cpp
     src/build/TargetBuilder.cpp
+    src/build/TaskScheduler.cpp
+    src/build/ThreadPool.cpp
     src/cache/BuildCache.cpp
+    src/cache/DepFileParser.cpp
+    src/cache/FileHasher.cpp
+    src/cache/ManifestStore.cpp
     src/cli/CommandLine.cpp
     src/config/ConfigLoader.cpp
     src/config/Lexer.cpp
@@ -38,6 +43,7 @@ add_library(
     src/project/TargetSelector.cpp
     src/toolchain/TargetTriple.cpp
     src/toolchain/ToolchainDetector.cpp
+    src/util/BuildLock.cpp
     src/util/CleanRunner.cpp
     src/util/Path.cpp
 )
@@ -160,6 +166,62 @@ if(CIPPIE_BUILD_TESTS)
     target_link_libraries(cippie_project_name_tests PRIVATE cippie_core)
     add_test(NAME project_name COMMAND cippie_project_name_tests)
 
+    add_executable(
+        cippie_file_hasher_tests
+        tests/unit/FileHasherTests.cpp
+    )
+    target_link_libraries(cippie_file_hasher_tests PRIVATE cippie_core)
+    add_test(NAME file_hasher COMMAND cippie_file_hasher_tests)
+
+    add_executable(
+        cippie_cache_key_tests
+        tests/unit/CacheKeyTests.cpp
+    )
+    target_link_libraries(cippie_cache_key_tests PRIVATE cippie_core)
+    add_test(NAME cache_key COMMAND cippie_cache_key_tests)
+
+    add_executable(
+        cippie_dep_file_parser_tests
+        tests/unit/DepFileParserTests.cpp
+    )
+    target_link_libraries(cippie_dep_file_parser_tests PRIVATE cippie_core)
+    add_test(NAME dep_file_parser COMMAND cippie_dep_file_parser_tests)
+
+    add_executable(
+        cippie_manifest_store_tests
+        tests/unit/ManifestStoreTests.cpp
+    )
+    target_link_libraries(cippie_manifest_store_tests PRIVATE cippie_core)
+    add_test(NAME manifest_store COMMAND cippie_manifest_store_tests)
+
+    add_executable(
+        cippie_job_count_parsing_tests
+        tests/unit/JobCountParsingTests.cpp
+    )
+    target_link_libraries(cippie_job_count_parsing_tests PRIVATE cippie_core)
+    add_test(NAME job_count_parsing COMMAND cippie_job_count_parsing_tests)
+
+    add_executable(
+        cippie_task_scheduler_tests
+        tests/unit/TaskSchedulerTests.cpp
+    )
+    target_link_libraries(cippie_task_scheduler_tests PRIVATE cippie_core)
+    add_test(NAME task_scheduler COMMAND cippie_task_scheduler_tests)
+
+    add_executable(
+        cippie_captured_output_tests
+        tests/unit/CapturedOutputTests.cpp
+    )
+    target_link_libraries(cippie_captured_output_tests PRIVATE cippie_core)
+    add_test(NAME captured_output COMMAND cippie_captured_output_tests)
+
+    add_executable(
+        cippie_build_lock_tests
+        tests/unit/BuildLockTests.cpp
+    )
+    target_link_libraries(cippie_build_lock_tests PRIVATE cippie_core)
+    add_test(NAME build_lock COMMAND cippie_build_lock_tests)
+
     add_test(
         NAME smoke
         COMMAND
@@ -248,6 +310,34 @@ if(CIPPIE_BUILD_TESTS)
         NAME clean
         COMMAND
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/CleanTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME incremental_build
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/IncrementalBuildTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME parallel_build
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/ParallelBuildTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME clean_cache
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/CleanCacheTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME lock_conflict
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/LockConflictTest.sh"
             "$<TARGET_FILE:cippie>"
     )
 endif()
