@@ -7,6 +7,7 @@
 #include <cippie/core/Version.hpp>
 #include <cippie/process/Process.hpp>
 #include <cippie/project/ProjectLocator.hpp>
+#include <cippie/project/TargetSelector.hpp>
 #include <cippie/toolchain/ToolchainDetector.hpp>
 
 #include <filesystem>
@@ -101,45 +102,28 @@ namespace cippie
 
         const auto project = std::move(*projectResult);
 
-        if (project.targets.empty())
+        TargetSelector selector;
+        auto selectedTargetRes = selector.select(project, commandLine.target);
+
+        if (!selectedTargetRes.has_value())
         {
-            logger_.error("project has no build targets");
+            logger_.error(selectedTargetRes.error().message);
             return toInt(ExitCode::configurationError);
         }
 
-        const Target* selectedTarget = nullptr;
+        const Target* selectedTarget = *selectedTargetRes;
 
-        if (commandLine.target.empty())
-        {
-            selectedTarget = &project.targets.front();
-        }
-        else
-        {
-            for (const auto& target : project.targets)
-            {
-                if (target.name == commandLine.target)
-                {
-                    selectedTarget = &target;
-                    break;
-                }
-            }
-        }
-
-        if (selectedTarget == nullptr)
-        {
-            logger_.error("target not found: " + commandLine.target);
-            return toInt(ExitCode::configurationError);
-        }
+        ToolchainDetector detector;
+        const auto toolchain = detector.detect();
 
         BuildPlanner planner;
         const auto plan = planner.create(
             project,
             *selectedTarget,
+            toolchain,
             "debug"
         );
 
-        ToolchainDetector detector;
-        const auto toolchain = detector.detect();
         BuildEngine engine(logger_);
 
         if (!engine.execute(plan, toolchain))
@@ -153,7 +137,7 @@ namespace cippie
         }
 
         ProcessRequest request;
-        request.executable = plan.linkStep.output.string();
+        request.executable = plan.linkCommand.output;
         request.arguments = commandLine.forwardedArguments;
         request.workingDirectory = project.rootDirectory;
 

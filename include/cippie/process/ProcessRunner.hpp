@@ -2,16 +2,16 @@
 
 #include <cippie/process/ProcessRequest.hpp>
 #include <cippie/process/ProcessResult.hpp>
-#include <cippie/process/ProcessRunner.hpp>
 
 namespace cippie
 {
-    class Process
+    class ProcessRunner
     {
     public:
-        Process() = default;
+        ProcessRunner() = default;
+        virtual ~ProcessRunner() = default;
 
-        [[nodiscard]] ProcessResult run(
+        [[nodiscard]] virtual ProcessResult run(
             const ProcessRequest& request
         ) const;
     };

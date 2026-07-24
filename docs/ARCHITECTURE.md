@@ -6,18 +6,16 @@ Cippie is designed with modularity, ownership clarity, and platform isolation.
 
 - `app`: High-level command dispatch and application lifecycle (`Application`).
 - `cli`: Command-line parsing (`CommandLineParser`).
-- `config`: Complete Cippiefile frontend DSL pipeline:
-  - `Lexer`: Tokenizes Cippiefile DSL text with `SourceLocation` tracking.
-  - `Parser`: Recursive descent AST parser with syntax error recovery.
-  - `Ast`: Immutable AST representation (`AstValue`, `AstProjectDeclaration`, `AstTargetDeclaration`).
-  - `Validator`: Strongly-typed validation and cycle detection.
-  - `ConfigLoader`: Integrated file loader returning `Result<Project>`.
-- `project`: Strongly typed models (`Project`, `Target`, `BuildConfiguration`, `Dependency`).
-- `build`: Build graph creation, dependency scanning, compilation, and linking execution.
-- `process`: Process execution abstraction (`ProcessRunner` with POSIX `fork`/`execvp`/`waitpid`).
-- `toolchain`: Compiler, archiver, and linker detection (`ToolchainDetector`).
+- `config`: Complete Cippiefile frontend DSL pipeline (`Lexer`, `Parser`, `Ast`, `Validator`, `ConfigLoader`).
+- `project`: Strongly typed project models (`Project`, `Target`, `BuildConfiguration`, `Dependency`, `TargetSelector`).
+- `build`: Build graph & plan generation, deterministic source scanner, compile & link command structures:
+  - `SourceScanner`: Pattern-based glob expansion (`*.cpp`, `*.cc`, `*.cxx`, `**`), directory filtering, path normalization & sorting.
+  - `BuildPlanner`: Collision-free object mapping and structured `CompileCommand` and `LinkCommand` build plans.
+  - `BuildEngine`: Sequential build execution loop producing Ninja-formatted progress logs.
+- `process`: POSIX process execution abstraction (`ProcessRunner` with `fork`/`execvp`/`waitpid` isolation).
+- `toolchain`: Compiler, archiver, linker, and target triple detection (`ToolchainDetector`, `TargetTriple`).
 - `package`: Dependency resolution and package management.
 - `cache`: Incremental build cache tracking.
 - `diagnostics`: Diagnostics generation and rich terminal formatting (`DiagnosticPrinter`, `Logger`).
 - `platform`: Operating system isolation (`linux/`, `windows/`, `macos/`).
-- `util`: File IO and string utilities.
+- `util`: Shared filesystem and string utilities.

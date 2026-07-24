@@ -7,6 +7,8 @@ namespace cippie
     class ToolchainDetector
     {
     public:
+        ToolchainDetector() = default;
+
         [[nodiscard]] Toolchain detect() const;
     };
 }

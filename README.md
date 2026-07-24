@@ -1,6 +1,16 @@
 # Cippie
 
-Cippie is a C++ build system and package manager.
+Cippie is a modern C++23 build system, project manager, and package manager.
+
+## Usage
+
+```bash
+# Build the default or specified target
+cippie build [target]
+
+# Build and run target, forwarding arguments after --
+cippie run [target] [-- program arguments...]
+```
 
 ## Bootstrap build
 
