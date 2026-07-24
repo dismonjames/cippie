@@ -28,3 +28,4 @@ vgcore.*
 *~
 .DS_Store
 Thumbs.db
+build-asan/
