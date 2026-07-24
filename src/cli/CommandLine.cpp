@@ -44,6 +44,21 @@ namespace cippie
                 return CommandType::newProject;
             }
 
+            if (value == "add")
+            {
+                return CommandType::add;
+            }
+
+            if (value == "remove")
+            {
+                return CommandType::remove;
+            }
+
+            if (value == "restore")
+            {
+                return CommandType::restore;
+            }
+
             return CommandType::unknown;
         }
 
@@ -113,6 +128,18 @@ namespace cippie
             if (argument == "--all")
             {
                 result.cleanAll = true;
+                continue;
+            }
+
+            if (argument == "--offline")
+            {
+                result.offline = true;
+                continue;
+            }
+
+            if (argument == "--locked")
+            {
+                result.locked = true;
                 continue;
             }
 

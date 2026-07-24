@@ -2,9 +2,12 @@
 
 #include <cippie/build/BuildEngine.hpp>
 #include <cippie/build/BuildPlanner.hpp>
+#include <cippie/config/CippiefileEditor.hpp>
 #include <cippie/config/ConfigLoader.hpp>
 #include <cippie/core/ExitCode.hpp>
 #include <cippie/core/Version.hpp>
+#include <cippie/package/DependencyResolver.hpp>
+#include <cippie/package/LockFile.hpp>
 #include <cippie/process/Process.hpp>
 #include <cippie/project/ProjectGenerator.hpp>
 #include <cippie/project/ProjectLocator.hpp>
@@ -13,6 +16,7 @@
 #include <cippie/util/BuildLock.hpp>
 #include <cippie/util/CleanRunner.hpp>
 
+#include <fstream>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -66,6 +70,15 @@ namespace cippie
             case CommandType::newProject:
                 return createNewProject(commandLine);
 
+            case CommandType::restore:
+                return restoreProject(commandLine);
+
+            case CommandType::add:
+                return addPackage(commandLine);
+
+            case CommandType::remove:
+                return removePackage(commandLine);
+
             case CommandType::unknown:
                 logger_.error("unknown command");
                 printHelp();
@@ -105,6 +118,15 @@ namespace cippie
         }
 
         const auto project = std::move(*projectResult);
+
+        // Auto-restore dependencies if declared
+        if (!project.dependencies.empty())
+        {
+            if (restoreProject(commandLine) != toInt(ExitCode::success))
+            {
+                return toInt(ExitCode::buildFailed);
+            }
+        }
 
         TargetSelector selector;
         auto selectedTargetRes = selector.selectForBuild(project, commandLine.target);
@@ -162,6 +184,14 @@ namespace cippie
         }
 
         const auto project = std::move(*projectResult);
+
+        if (!project.dependencies.empty())
+        {
+            if (restoreProject(commandLine) != toInt(ExitCode::success))
+            {
+                return toInt(ExitCode::buildFailed);
+            }
+        }
 
         TargetSelector selector;
         auto selectedTargetRes = selector.selectForRun(project, commandLine.target);
@@ -241,6 +271,14 @@ namespace cippie
         }
 
         const auto project = std::move(*projectResult);
+
+        if (!project.dependencies.empty())
+        {
+            if (restoreProject(commandLine) != toInt(ExitCode::success))
+            {
+                return toInt(ExitCode::buildFailed);
+            }
+        }
 
         TargetSelector selector;
         auto selectedTargetsRes = selector.selectForTest(project, commandLine.target);
@@ -365,23 +403,184 @@ namespace cippie
         return toInt(ExitCode::success);
     }
 
+    int Application::restoreProject(const CommandLine& commandLine)
+    {
+        ProjectLocator locator;
+        const auto projectRoot = locator.locate(commandLine.workingDirectory);
+
+        if (!projectRoot)
+        {
+            logger_.error(
+                "Cippiefile was not found in this directory or any parent directory"
+            );
+            return toInt(ExitCode::projectNotFound);
+        }
+
+        ConfigLoader configLoader;
+        auto projectResult = configLoader.load(*projectRoot);
+
+        if (!projectResult.has_value())
+        {
+            logger_.error(projectResult.error().message);
+            return toInt(ExitCode::configurationError);
+        }
+
+        const auto project = std::move(*projectResult);
+
+        std::optional<LockFile> existingLock;
+        const auto lockPath = *projectRoot / "Cippie.lock";
+        if (std::filesystem::exists(lockPath))
+        {
+            auto lockLoadRes = LockFile::load(lockPath);
+            if (lockLoadRes.has_value())
+            {
+                existingLock = std::move(*lockLoadRes);
+            }
+        }
+
+        DependencyResolver resolver(PackageRegistry(), PackageCache::getCacheDirectory());
+        auto graphRes = resolver.resolve(project, existingLock, commandLine.offline, commandLine.locked);
+
+        if (!graphRes.has_value())
+        {
+            logger_.error(graphRes.error().message);
+            return toInt(ExitCode::configurationError);
+        }
+
+        if (!commandLine.locked)
+        {
+            LockFile newLock;
+            for (const auto& [name, rPkg] : graphRes->packages)
+            {
+                newLock.addPackage(LockedPackage{
+                    .name = name,
+                    .version = rPkg.version,
+                    .sourceType = rPkg.sourceType,
+                    .sourceLocation = rPkg.sourceLocation,
+                    .commit = rPkg.commit,
+                    .integrity = rPkg.integrity,
+                    .dependencies = rPkg.dependencies
+                });
+            }
+            (void)newLock.save(lockPath);
+        }
+
+        logger_.info("Restore complete.");
+        return toInt(ExitCode::success);
+    }
+
+    int Application::addPackage(const CommandLine& commandLine)
+    {
+        if (commandLine.target.empty())
+        {
+            logger_.error("missing package name for 'cippie add'");
+            return toInt(ExitCode::invalidArguments);
+        }
+
+        ProjectLocator locator;
+        const auto projectRoot = locator.locate(commandLine.workingDirectory);
+
+        if (!projectRoot)
+        {
+            logger_.error(
+                "Cippiefile was not found in this directory or any parent directory"
+            );
+            return toInt(ExitCode::projectNotFound);
+        }
+
+        const auto cippiefilePath = *projectRoot / "Cippiefile";
+
+        // Read backup for rollback
+        std::ifstream file(cippiefilePath);
+        std::string backup((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        file.close();
+
+        std::string pkgStr = commandLine.target;
+        std::string name = pkgStr;
+        std::string verReq = "*";
+
+        auto atPos = pkgStr.find('@');
+        if (atPos != std::string::npos)
+        {
+            name = pkgStr.substr(0, atPos);
+            verReq = pkgStr.substr(atPos + 1);
+        }
+
+        std::string expr = "package(\"" + name + "\", \"" + verReq + "\")";
+
+        auto editRes = CippiefileEditor::addDependency(cippiefilePath, expr);
+        if (!editRes.has_value())
+        {
+            logger_.error(editRes.error().message);
+            return toInt(ExitCode::generalError);
+        }
+
+        int restoreCode = restoreProject(commandLine);
+        if (restoreCode != toInt(ExitCode::success))
+        {
+            // Rollback Cippiefile edit
+            std::ofstream outFile(cippiefilePath);
+            outFile << backup;
+            logger_.error("rolled back Cippiefile edit due to resolution failure");
+            return restoreCode;
+        }
+
+        return toInt(ExitCode::success);
+    }
+
+    int Application::removePackage(const CommandLine& commandLine)
+    {
+        if (commandLine.target.empty())
+        {
+            logger_.error("missing package name for 'cippie remove'");
+            return toInt(ExitCode::invalidArguments);
+        }
+
+        ProjectLocator locator;
+        const auto projectRoot = locator.locate(commandLine.workingDirectory);
+
+        if (!projectRoot)
+        {
+            logger_.error(
+                "Cippiefile was not found in this directory or any parent directory"
+            );
+            return toInt(ExitCode::projectNotFound);
+        }
+
+        const auto cippiefilePath = *projectRoot / "Cippiefile";
+        auto editRes = CippiefileEditor::removeDependency(cippiefilePath, commandLine.target);
+
+        if (!editRes.has_value())
+        {
+            logger_.error(editRes.error().message);
+            return toInt(ExitCode::generalError);
+        }
+
+        return restoreProject(commandLine);
+    }
+
     void Application::printHelp() const
     {
         std::cout
             << "Cippie - C++ build system and package manager\n\n"
             << "Usage:\n"
-            << "  cippie <command> [target] [-j N] [-v] [-- arguments]\n\n"
+            << "  cippie <command> [target] [-j N] [-v] [--offline] [--locked] [-- arguments]\n\n"
             << "Commands:\n"
-            << "  new <name>  Create a new Cippie project\n"
-            << "  build       Build a target\n"
-            << "  run         Build and run a target\n"
-            << "  test        Build and run tests\n"
-            << "  clean       Remove generated build files (--cache / --all)\n"
-            << "  help        Show this help\n"
-            << "  version     Show the Cippie version\n\n"
+            << "  new <name>       Create a new Cippie project\n"
+            << "  build            Build a target\n"
+            << "  run              Build and run a target\n"
+            << "  test             Build and run tests\n"
+            << "  clean            Remove generated build files (--cache / --all)\n"
+            << "  add <pkg[@ver]>  Add a package dependency\n"
+            << "  remove <pkg>     Remove a package dependency\n"
+            << "  restore          Restore project dependencies (--offline / --locked)\n"
+            << "  help             Show this help\n"
+            << "  version          Show the Cippie version\n\n"
             << "Options:\n"
             << "  -j, --jobs N   Number of parallel build workers\n"
-            << "  -v, --verbose  Verbose build output\n";
+            << "  -v, --verbose  Verbose build output\n"
+            << "  --offline      Prohibit network operations\n"
+            << "  --locked       Refuse updating lock file\n";
     }
 
     void Application::printVersion() const

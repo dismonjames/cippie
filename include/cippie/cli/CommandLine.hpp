@@ -15,6 +15,9 @@ namespace cippie
         test,
         clean,
         newProject,
+        add,
+        remove,
+        restore,
         unknown
     };
 
@@ -28,6 +31,8 @@ namespace cippie
         bool verbose{false};
         bool cleanCacheOnly{false};
         bool cleanAll{false};
+        bool offline{false};
+        bool locked{false};
     };
 
     class CommandLineParser

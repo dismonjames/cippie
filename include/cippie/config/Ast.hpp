@@ -36,6 +36,7 @@ namespace cippie
 
     struct AstArray;
     struct AstCall;
+    struct AstAssignment;
     struct AstObject;
 
     using AstValue = std::variant<
@@ -45,6 +46,7 @@ namespace cippie
         AstIdentifier,
         AstArray,
         AstCall,
+        std::shared_ptr<AstAssignment>,
         std::shared_ptr<AstObject>
     >;
 

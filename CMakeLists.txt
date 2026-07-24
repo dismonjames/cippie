@@ -28,13 +28,23 @@ add_library(
     src/cache/FileHasher.cpp
     src/cache/ManifestStore.cpp
     src/cli/CommandLine.cpp
+    src/config/CippiefileEditor.cpp
     src/config/ConfigLoader.cpp
     src/config/Lexer.cpp
     src/config/Parser.cpp
     src/config/Validator.cpp
     src/diagnostics/DiagnosticPrinter.cpp
     src/diagnostics/Logger.cpp
+    src/package/DependencyResolver.cpp
+    src/package/GitFetcher.cpp
+    src/package/HttpFetcher.cpp
+    src/package/LockFile.cpp
+    src/package/PackageCache.cpp
+    src/package/PackageLock.cpp
     src/package/PackageManager.cpp
+    src/package/PackageRegistry.cpp
+    src/package/SemanticVersion.cpp
+    src/package/VersionRequirement.cpp
     src/platform/Platform.cpp
     src/platform/linux/LinuxProcessRunner.cpp
     src/process/Process.cpp
@@ -43,9 +53,11 @@ add_library(
     src/project/TargetSelector.cpp
     src/toolchain/TargetTriple.cpp
     src/toolchain/ToolchainDetector.cpp
+    src/util/ArchiveExtractor.cpp
     src/util/BuildLock.cpp
     src/util/CleanRunner.cpp
     src/util/Path.cpp
+    src/util/SHA256.cpp
 )
 
 target_include_directories(
@@ -222,6 +234,34 @@ if(CIPPIE_BUILD_TESTS)
     target_link_libraries(cippie_build_lock_tests PRIVATE cippie_core)
     add_test(NAME build_lock COMMAND cippie_build_lock_tests)
 
+    add_executable(
+        cippie_semantic_version_tests
+        tests/unit/SemanticVersionTests.cpp
+    )
+    target_link_libraries(cippie_semantic_version_tests PRIVATE cippie_core)
+    add_test(NAME semantic_version COMMAND cippie_semantic_version_tests)
+
+    add_executable(
+        cippie_version_requirement_tests
+        tests/unit/VersionRequirementTests.cpp
+    )
+    target_link_libraries(cippie_version_requirement_tests PRIVATE cippie_core)
+    add_test(NAME version_requirement COMMAND cippie_version_requirement_tests)
+
+    add_executable(
+        cippie_archive_security_tests
+        tests/unit/ArchiveSecurityTests.cpp
+    )
+    target_link_libraries(cippie_archive_security_tests PRIVATE cippie_core)
+    add_test(NAME archive_security COMMAND cippie_archive_security_tests)
+
+    add_executable(
+        cippie_sha256_tests
+        tests/unit/SHA256Tests.cpp
+    )
+    target_link_libraries(cippie_sha256_tests PRIVATE cippie_core)
+    add_test(NAME sha256 COMMAND cippie_sha256_tests)
+
     add_test(
         NAME smoke
         COMMAND
@@ -338,6 +378,27 @@ if(CIPPIE_BUILD_TESTS)
         NAME lock_conflict
         COMMAND
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/LockConflictTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME path_package
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/PathPackageTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME registry_package
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/RegistryPackageTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME cippie_add_remove
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/CippieAddRemoveTest.sh"
             "$<TARGET_FILE:cippie>"
     )
 endif()

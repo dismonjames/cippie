@@ -5,13 +5,22 @@
 
 namespace cippie
 {
+    enum class PackageSourceType
+    {
+        registry,
+        path,
+        git
+    };
+
     struct Dependency
     {
         std::string name;
+        PackageSourceType sourceType{PackageSourceType::registry};
         std::string versionRequirement;
-        std::string type{"package"};
+        std::filesystem::path path;
         std::string url;
         std::string tag;
-        std::filesystem::path path;
+        std::string rev;
+        std::string branch;
     };
 }

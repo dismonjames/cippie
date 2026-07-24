@@ -18,7 +18,13 @@ namespace cippie
                 case TokenKind::libraryKeyword:
                 case TokenKind::testKeyword:
                 case TokenKind::packageKeyword:
+                case TokenKind::pathPackageKeyword:
+                case TokenKind::gitPackageKeyword:
+                case TokenKind::tagKeyword:
+                case TokenKind::revKeyword:
+                case TokenKind::branchKeyword:
                 case TokenKind::dependencyKeyword:
+                case TokenKind::dependenciesKeyword:
                     return true;
                 default:
                     return false;
@@ -438,6 +444,19 @@ namespace cippie
             if (check(TokenKind::leftParenthesis))
             {
                 return parseCall(tok);
+            }
+            if (match(TokenKind::equal))
+            {
+                auto val = parseValue();
+                if (val.has_value())
+                {
+                    return std::make_shared<AstAssignment>(AstAssignment{
+                        .key = std::string(tok.lexeme),
+                        .value = std::move(*val),
+                        .location = tok.location
+                    });
+                }
+                return std::nullopt;
             }
             if (check(TokenKind::leftBrace))
             {

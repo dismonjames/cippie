@@ -322,9 +322,33 @@ namespace cippie
         {
             addToken(TokenKind::packageKeyword);
         }
+        else if (text == "pathPackage" || text == "path_package")
+        {
+            addToken(TokenKind::pathPackageKeyword);
+        }
+        else if (text == "gitPackage" || text == "git_package")
+        {
+            addToken(TokenKind::gitPackageKeyword);
+        }
+        else if (text == "tag")
+        {
+            addToken(TokenKind::tagKeyword);
+        }
+        else if (text == "rev")
+        {
+            addToken(TokenKind::revKeyword);
+        }
+        else if (text == "branch")
+        {
+            addToken(TokenKind::branchKeyword);
+        }
         else if (text == "dependency")
         {
             addToken(TokenKind::dependencyKeyword);
+        }
+        else if (text == "dependencies")
+        {
+            addToken(TokenKind::dependenciesKeyword);
         }
         else if (text == "true")
         {

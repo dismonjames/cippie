@@ -311,15 +311,17 @@ namespace cippie
                                     {
                                         project.dependencies.push_back(Dependency{
                                             .name = *name,
+                                            .sourceType = PackageSourceType::registry,
                                             .versionRequirement = *ver,
-                                            .type = "package",
+                                            .path = {},
                                             .url = {},
                                             .tag = {},
-                                            .path = {}
+                                            .rev = {},
+                                            .branch = {}
                                         });
                                     }
                                 }
-                                else if (call->name == "pathPackage" && call->arguments.size() >= 2)
+                                else if ((call->name == "pathPackage" || call->name == "path_package") && call->arguments.size() >= 2)
                                 {
                                     auto name = getStringValue(call->arguments[0]);
                                     auto p = getStringValue(call->arguments[1]);
@@ -327,11 +329,58 @@ namespace cippie
                                     {
                                         project.dependencies.push_back(Dependency{
                                             .name = *name,
+                                            .sourceType = PackageSourceType::path,
                                             .versionRequirement = "*",
-                                            .type = "pathPackage",
+                                            .path = *p,
                                             .url = {},
                                             .tag = {},
-                                            .path = *p
+                                            .rev = {},
+                                            .branch = {}
+                                        });
+                                    }
+                                }
+                                else if ((call->name == "gitPackage" || call->name == "git_package") && call->arguments.size() >= 2)
+                                {
+                                    auto name = getStringValue(call->arguments[0]);
+                                    auto url = getStringValue(call->arguments[1]);
+                                    std::string tag, rev, branch;
+
+                                    for (size_t i = 2; i < call->arguments.size(); ++i)
+                                    {
+                                        if (const auto* assignPtr = std::get_if<std::shared_ptr<AstAssignment>>(&call->arguments[i]))
+                                        {
+                                            if (*assignPtr)
+                                            {
+                                                auto val = getStringValue((*assignPtr)->value);
+                                                if (val.has_value())
+                                                {
+                                                    if ((*assignPtr)->key == "tag") tag = *val;
+                                                    else if ((*assignPtr)->key == "rev") rev = *val;
+                                                    else if ((*assignPtr)->key == "branch") branch = *val;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (!tag.empty() && !rev.empty())
+                                    {
+                                        addDiagnostic(
+                                            DiagnosticSeverity::error,
+                                            "gitPackage '" + name.value_or("") + "' cannot specify both tag and rev",
+                                            call->location
+                                        );
+                                    }
+                                    else if (name.has_value() && url.has_value())
+                                    {
+                                        project.dependencies.push_back(Dependency{
+                                            .name = *name,
+                                            .sourceType = PackageSourceType::git,
+                                            .versionRequirement = "*",
+                                            .path = {},
+                                            .url = *url,
+                                            .tag = tag,
+                                            .rev = rev,
+                                            .branch = branch
                                         });
                                     }
                                 }

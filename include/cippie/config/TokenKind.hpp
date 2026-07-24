@@ -19,7 +19,13 @@ namespace cippie
         sharedLibraryKeyword,
         testKeyword,
         packageKeyword,
+        pathPackageKeyword,
+        gitPackageKeyword,
         dependencyKeyword,
+        dependenciesKeyword,
+        tagKeyword,
+        revKeyword,
+        branchKeyword,
 
         leftParenthesis,
         rightParenthesis,
@@ -64,8 +70,20 @@ namespace cippie
                 return "test";
             case TokenKind::packageKeyword:
                 return "package";
+            case TokenKind::pathPackageKeyword:
+                return "pathPackage";
+            case TokenKind::gitPackageKeyword:
+                return "gitPackage";
             case TokenKind::dependencyKeyword:
                 return "dependency";
+            case TokenKind::dependenciesKeyword:
+                return "dependencies";
+            case TokenKind::tagKeyword:
+                return "tag";
+            case TokenKind::revKeyword:
+                return "rev";
+            case TokenKind::branchKeyword:
+                return "branch";
             case TokenKind::leftParenthesis:
                 return "(";
             case TokenKind::rightParenthesis:

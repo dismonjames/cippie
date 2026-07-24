@@ -8,16 +8,20 @@ namespace cippie
     class Application
     {
     public:
+        Application() = default;
+
         [[nodiscard]] int run(int argc, char* argv[]);
 
     private:
-        [[nodiscard]] int dispatch(const CommandLine& commandLine);
-
-        [[nodiscard]] int buildProject(const CommandLine& commandLine);
-        [[nodiscard]] int runProject(const CommandLine& commandLine);
-        [[nodiscard]] int testProject(const CommandLine& commandLine);
-        [[nodiscard]] int cleanProject(const CommandLine& commandLine);
-        [[nodiscard]] int createNewProject(const CommandLine& commandLine);
+        int dispatch(const CommandLine& commandLine);
+        int buildProject(const CommandLine& commandLine);
+        int runProject(const CommandLine& commandLine);
+        int testProject(const CommandLine& commandLine);
+        int cleanProject(const CommandLine& commandLine);
+        int createNewProject(const CommandLine& commandLine);
+        int restoreProject(const CommandLine& commandLine);
+        int addPackage(const CommandLine& commandLine);
+        int removePackage(const CommandLine& commandLine);
 
         void printHelp() const;
         void printVersion() const;
