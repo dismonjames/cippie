@@ -1,36 +1,101 @@
 #include <cippie/config/ConfigLoader.hpp>
+#include <cippie/config/Lexer.hpp>
+#include <cippie/config/Parser.hpp>
+#include <cippie/config/Validator.hpp>
+#include <cippie/diagnostics/DiagnosticPrinter.hpp>
 
-#include <stdexcept>
-#include <utility>
+#include <fstream>
+#include <sstream>
 
 namespace cippie
 {
-    Project ConfigLoader::load(
+    Result<Project> ConfigLoader::load(
         const std::filesystem::path& projectRoot
     ) const
     {
         const auto configurationFile = projectRoot / "Cippiefile";
+        return loadFromFile(configurationFile);
+    }
 
-        if (!std::filesystem::is_regular_file(configurationFile))
+    Result<Project> ConfigLoader::loadFromFile(
+        const std::filesystem::path& cippiefilePath
+    ) const
+    {
+        if (!std::filesystem::is_regular_file(cippiefilePath))
         {
-            throw std::runtime_error(
-                "Cippiefile does not exist in project root"
-            );
+            return std::unexpected(Error{
+                .code = ErrorCode::projectNotFound,
+                .message = "Cippiefile does not exist: " + cippiefilePath.string(),
+                .location = std::nullopt,
+                .notes = {}
+            });
         }
 
-        Project project;
-        project.name = projectRoot.filename().string();
-        project.cppStandard = 23;
-        project.rootDirectory = projectRoot;
-        project.configurationFile = configurationFile;
+        std::ifstream file(cippiefilePath, std::ios::binary);
+        if (!file.is_open())
+        {
+            return std::unexpected(Error{
+                .code = ErrorCode::fileReadFailed,
+                .message = "Failed to open Cippiefile: " + cippiefilePath.string(),
+                .location = std::nullopt,
+                .notes = {}
+            });
+        }
 
-        Target target;
-        target.name = project.name;
-        target.type = TargetType::executable;
-        target.entry = projectRoot / "src/main.cpp";
-        target.includeDirectories.push_back(projectRoot / "include");
+        std::ostringstream ss;
+        ss << file.rdbuf();
+        std::string content = ss.str();
 
-        project.targets.push_back(std::move(target));
-        return project;
+        const auto projectRoot = cippiefilePath.parent_path();
+
+        Lexer lexer(content, cippiefilePath);
+        auto tokens = lexer.tokenize();
+
+        if (lexer.hasErrors())
+        {
+            const std::string formatted = DiagnosticPrinter::formatAll(
+                lexer.diagnostics()
+            );
+            return std::unexpected(Error{
+                .code = ErrorCode::invalidToken,
+                .message = formatted,
+                .location = std::nullopt,
+                .notes = {}
+            });
+        }
+
+        Parser parser(std::move(tokens), cippiefilePath);
+        auto astProject = parser.parseProject();
+
+        if (parser.hasErrors() || !astProject.has_value())
+        {
+            const std::string formatted = DiagnosticPrinter::formatAll(
+                parser.diagnostics()
+            );
+            return std::unexpected(Error{
+                .code = ErrorCode::parseFailed,
+                .message = formatted,
+                .location = std::nullopt,
+                .notes = {}
+            });
+        }
+
+        Validator validator;
+        auto project = validator.validate(*astProject, projectRoot);
+
+        if (validator.hasErrors() || !project.has_value())
+        {
+            const std::string formatted = DiagnosticPrinter::formatAll(
+                validator.diagnostics()
+            );
+            return std::unexpected(Error{
+                .code = ErrorCode::validationFailed,
+                .message = formatted,
+                .location = std::nullopt,
+                .notes = {}
+            });
+        }
+
+        return *project;
     }
 }

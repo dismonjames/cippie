@@ -1,0 +1,8 @@
+project("bad") {
+    executable("client") {
+        entry = "src/client.cpp";
+    }
+    executable("client") {
+        entry = "src/client2.cpp";
+    }
+}

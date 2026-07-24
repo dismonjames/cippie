@@ -1,0 +1,6 @@
+project("bad") {
+    invalidField = "unknown";
+    executable("client") {
+        entry = "src/main.cpp";
+    }
+}

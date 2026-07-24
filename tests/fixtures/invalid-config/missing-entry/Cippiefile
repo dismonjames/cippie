@@ -1,0 +1,5 @@
+project("bad") {
+    executable("client") {
+        sources = ["src/main.cpp"];
+    }
+}

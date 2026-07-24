@@ -1,0 +1,38 @@
+project("multi-app") {
+    cpp = 23;
+    defaultTarget = "client";
+
+    configurations = {
+        debug {
+            optimization = 0;
+            debugSymbols = true;
+        }
+        release {
+            optimization = 3;
+            debugSymbols = false;
+        }
+    };
+
+    dependencies = [
+        package("fmt", "11.2.0")
+    ];
+
+    library("core") {
+        type = static;
+        sources = ["src/core/**/*.cpp"];
+        includes = ["include"];
+        publicIncludes = ["include"];
+    }
+
+    executable("client") {
+        entry = "apps/client/main.cpp";
+        sources = ["apps/client/**/*.cpp"];
+        links = ["core", "fmt"];
+    }
+
+    executable("server") {
+        entry = "apps/server/main.cpp";
+        sources = ["apps/server/**/*.cpp"];
+        links = ["core"];
+    }
+}

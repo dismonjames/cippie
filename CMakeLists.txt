@@ -22,6 +22,10 @@ add_library(
     src/cache/BuildCache.cpp
     src/cli/CommandLine.cpp
     src/config/ConfigLoader.cpp
+    src/config/Lexer.cpp
+    src/config/Parser.cpp
+    src/config/Validator.cpp
+    src/diagnostics/DiagnosticPrinter.cpp
     src/diagnostics/Logger.cpp
     src/package/PackageManager.cpp
     src/platform/Platform.cpp
@@ -69,17 +73,29 @@ if(CIPPIE_BUILD_TESTS)
         cippie_source_scanner_tests
         tests/unit/SourceScannerTests.cpp
     )
+    target_link_libraries(cippie_source_scanner_tests PRIVATE cippie_core)
+    add_test(NAME source_scanner COMMAND cippie_source_scanner_tests)
 
-    target_link_libraries(
-        cippie_source_scanner_tests
-        PRIVATE
-            cippie_core
+    add_executable(
+        cippie_config_lexer_tests
+        tests/unit/ConfigLexerTests.cpp
     )
+    target_link_libraries(cippie_config_lexer_tests PRIVATE cippie_core)
+    add_test(NAME config_lexer COMMAND cippie_config_lexer_tests)
 
-    add_test(
-        NAME source_scanner
-        COMMAND cippie_source_scanner_tests
+    add_executable(
+        cippie_config_parser_tests
+        tests/unit/ConfigParserTests.cpp
     )
+    target_link_libraries(cippie_config_parser_tests PRIVATE cippie_core)
+    add_test(NAME config_parser COMMAND cippie_config_parser_tests)
+
+    add_executable(
+        cippie_config_validator_tests
+        tests/unit/ConfigValidatorTests.cpp
+    )
+    target_link_libraries(cippie_config_validator_tests PRIVATE cippie_core)
+    add_test(NAME config_validator COMMAND cippie_config_validator_tests)
 
     add_test(
         NAME smoke

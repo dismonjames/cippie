@@ -1,0 +1,9 @@
+project("single-app") {
+    cpp = 23;
+
+    executable("app") {
+        entry = "src/main.cpp";
+        sources = ["src/**/*.cpp"];
+        includes = ["include"];
+    }
+}

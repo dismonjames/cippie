@@ -91,7 +91,15 @@ namespace cippie
         }
 
         ConfigLoader configLoader;
-        auto project = configLoader.load(*projectRoot);
+        auto projectResult = configLoader.load(*projectRoot);
+
+        if (!projectResult.has_value())
+        {
+            logger_.error(projectResult.error().message);
+            return toInt(ExitCode::configurationError);
+        }
+
+        const auto project = std::move(*projectResult);
 
         if (project.targets.empty())
         {

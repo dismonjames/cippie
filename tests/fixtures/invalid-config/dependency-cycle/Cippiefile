@@ -1,0 +1,10 @@
+project("bad") {
+    library("a") {
+        type = static;
+        links = ["b"];
+    }
+    library("b") {
+        type = static;
+        links = ["a"];
+    }
+}
