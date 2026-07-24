@@ -1,0 +1,10 @@
+project("cippie") {
+    cpp = 23;
+
+    executable("cippie") {
+        entry = "src/main.cpp";
+        sources = ["src/**/*.cpp"];
+        includes = ["include"];
+        dependencies = [];
+    }
+}
