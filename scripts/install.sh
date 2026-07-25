@@ -1,8 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Cippie Official Linux Binary Installer
-set -Eeuo pipefail
+# POSIX sh compatible — works with bash, dash, ash
+set -eu
 
-VERSION="0.1.0"
+VERSION="${CIPPIE_INSTALL_VERSION:-0.1.0}"
 PREFIX="${CIPPIE_INSTALL_PREFIX:-$HOME/.local}"
 INSTALL_DIR=""
 FORCE=false
@@ -21,18 +22,18 @@ Options:
   --prefix <path>      Installation prefix (default: $HOME/.local)
   --install-dir <path> Direct binary installation directory
   --force              Overwrite existing installation
-  --no-modify-path     Do not attempt shell configuration (informational only)
+  --no-modify-path     Accepted for forward compatibility (installer only prints PATH instructions)
   -h, --help           Show this help message
 
 Environment Variables:
   CIPPIE_INSTALL_VERSION   Version to install
   CIPPIE_INSTALL_PREFIX    Installation prefix
-  CIPPIE_RELEASE_BASE_URL  Base download URL (default: GitHub releases)
+  CIPPIE_RELEASE_BASE_URL  Base download URL (for testing/mirrors; default: GitHub releases)
 EOF
 }
 
-# Parse CLI arguments (override environment variables)
-while [[ $# -gt 0 ]]; do
+# Parse CLI arguments
+while [ $# -gt 0 ]; do
     case "$1" in
         --version)
             VERSION="${2:?Error: --version requires a version value}"
@@ -65,10 +66,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -n "${CIPPIE_INSTALL_VERSION:-}" && "$VERSION" == "0.1.0" ]]; then
-    VERSION="$CIPPIE_INSTALL_VERSION"
-fi
-
 # Detect OS and Architecture
 RAW_OS="$(uname -s)"
 RAW_ARCH="$(uname -m)"
@@ -83,7 +80,7 @@ case "$RAW_ARCH" in
         ;;
 esac
 
-if [[ "$OS" != "linux" || "$ARCH" != "x86_64" ]]; then
+if [ "$OS" != "linux" ] || [ "$ARCH" != "x86_64" ]; then
     echo "error: no prebuilt Cippie release is available for ${OS}-${ARCH}" >&2
     exit 1
 fi
@@ -93,7 +90,7 @@ PACKAGE_NAME="cippie-${VERSION}-${PLATFORM}"
 TARBALL_NAME="${PACKAGE_NAME}.tar.gz"
 CHECKSUM_NAME="${PACKAGE_NAME}.tar.gz.sha256"
 
-if [[ -n "$INSTALL_DIR" ]]; then
+if [ -n "$INSTALL_DIR" ]; then
     DEST_DIR="$INSTALL_DIR"
 else
     DEST_DIR="${PREFIX}/bin"
@@ -102,10 +99,10 @@ fi
 DEST_BINARY="${DEST_DIR}/cippie"
 
 # Handle existing binary
-if [[ -e "$DEST_BINARY" && "$FORCE" != "true" ]]; then
-    if [[ -x "$DEST_BINARY" ]]; then
+if [ -e "$DEST_BINARY" ] && [ "$FORCE" != "true" ]; then
+    if [ -x "$DEST_BINARY" ]; then
         INST_VER="$("$DEST_BINARY" version 2>/dev/null | awk '{print $2}' || echo "")"
-        if [[ "$INST_VER" == "$VERSION" ]]; then
+        if [ "$INST_VER" = "$VERSION" ]; then
             echo "Cippie ${VERSION} is already installed at ${DEST_BINARY}."
             exit 0
         fi
@@ -115,23 +112,27 @@ if [[ -e "$DEST_BINARY" && "$FORCE" != "true" ]]; then
 fi
 
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "${TMP_DIR}"' EXIT
+# shellcheck disable=SC2064
+trap "rm -rf '${TMP_DIR}'" EXIT
 
-# Determine URLs
-if [[ "$RELEASE_BASE_URL" == *"github.com"* ]]; then
-    TARBALL_URL="${RELEASE_BASE_URL}/v${VERSION}/${TARBALL_NAME}"
-    CHECKSUM_URL="${RELEASE_BASE_URL}/v${VERSION}/${CHECKSUM_NAME}"
-else
-    TARBALL_URL="${RELEASE_BASE_URL}/${TARBALL_NAME}"
-    CHECKSUM_URL="${RELEASE_BASE_URL}/${CHECKSUM_NAME}"
-fi
+# Build download URLs
+case "$RELEASE_BASE_URL" in
+    *github.com*)
+        TARBALL_URL="${RELEASE_BASE_URL}/v${VERSION}/${TARBALL_NAME}"
+        CHECKSUM_URL="${RELEASE_BASE_URL}/v${VERSION}/${CHECKSUM_NAME}"
+        ;;
+    *)
+        TARBALL_URL="${RELEASE_BASE_URL}/${TARBALL_NAME}"
+        CHECKSUM_URL="${RELEASE_BASE_URL}/${CHECKSUM_NAME}"
+        ;;
+esac
 
 echo "Downloading Cippie ${VERSION} (${PLATFORM})..."
 
 # Download files safely
 fetch_url() {
-    local url="$1"
-    local output="$2"
+    url="$1"
+    output="$2"
     if command -v curl >/dev/null 2>&1; then
         curl -fsSL "$url" -o "$output"
     elif command -v wget >/dev/null 2>&1; then
@@ -143,16 +144,16 @@ fetch_url() {
 }
 
 if ! fetch_url "$CHECKSUM_URL" "${TMP_DIR}/${CHECKSUM_NAME}"; then
-    echo "error: failed to download checksum file from ${CHECKSUM_URL}" >&2
+    echo "error: failed to download checksum file" >&2
     exit 1
 fi
 
 if ! fetch_url "$TARBALL_URL" "${TMP_DIR}/${TARBALL_NAME}"; then
-    echo "error: failed to download release package from ${TARBALL_URL}" >&2
+    echo "error: failed to download release package" >&2
     exit 1
 fi
 
-# Verify SHA-256 Checksum BEFORE extraction
+# Verify SHA-256 BEFORE extraction
 echo "Verifying SHA-256 checksum..."
 (
     cd "$TMP_DIR"
@@ -161,15 +162,15 @@ echo "Verifying SHA-256 checksum..."
     elif command -v shasum >/dev/null 2>&1; then
         shasum -a 256 -c "${CHECKSUM_NAME}" >/dev/null 2>&1
     else
-        echo "error: sha256sum or shasum is required for checksum verification" >&2
+        echo "error: sha256sum or shasum is required" >&2
         exit 1
     fi
 ) || {
-    echo "error: SHA-256 checksum verification failed for ${TARBALL_NAME}" >&2
+    echo "error: SHA-256 checksum verification failed" >&2
     exit 1
 }
 
-# Inspect archive for path traversal or unexpected layout
+# Validate archive layout — reject path traversal
 echo "Validating release archive layout..."
 TAR_LIST="$(tar -tzf "${TMP_DIR}/${TARBALL_NAME}")"
 
@@ -179,35 +180,35 @@ if echo "$TAR_LIST" | grep -q '\.\.'; then
 fi
 
 EXPECTED_BIN="${PACKAGE_NAME}/bin/cippie"
-if ! echo "$TAR_LIST" | grep -q "^${EXPECTED_BIN}\$"; then
+if ! echo "$TAR_LIST" | grep -qx "${EXPECTED_BIN}"; then
     echo "error: archive does not contain expected executable ${EXPECTED_BIN}" >&2
     exit 1
 fi
 
-# Extract into temporary directory
+# Extract
 EXTRACT_DIR="${TMP_DIR}/ext"
 mkdir -p "$EXTRACT_DIR"
 tar -xzf "${TMP_DIR}/${TARBALL_NAME}" -C "$EXTRACT_DIR"
 
 SOURCE_BINARY="${EXTRACT_DIR}/${EXPECTED_BIN}"
-if [[ ! -f "$SOURCE_BINARY" ]]; then
-    echo "error: extracted binary missing at ${SOURCE_BINARY}" >&2
+if [ ! -f "$SOURCE_BINARY" ]; then
+    echo "error: extracted binary missing" >&2
     exit 1
 fi
 
 chmod +x "$SOURCE_BINARY"
 
-# Verify extracted binary executes correctly
+# Verify extracted binary
 EXTRACTED_VER="$("$SOURCE_BINARY" version 2>/dev/null | awk '{print $2}' || echo "")"
-if [[ "$EXTRACTED_VER" != "$VERSION" ]]; then
+if [ "$EXTRACTED_VER" != "$VERSION" ]; then
     echo "error: extracted binary version ('$EXTRACTED_VER') does not match expected '$VERSION'" >&2
     exit 1
 fi
 
-# Atomic Installation into destination directory
+# Atomic installation
 mkdir -p "$DEST_DIR"
 
-if [[ -d "$DEST_BINARY" ]]; then
+if [ -d "$DEST_BINARY" ]; then
     echo "error: destination ${DEST_BINARY} is a directory" >&2
     exit 1
 fi
@@ -216,28 +217,28 @@ TMP_DEST="${DEST_DIR}/.cippie.tmp.$$"
 cp "$SOURCE_BINARY" "$TMP_DEST"
 chmod +x "$TMP_DEST"
 
-# Verify temporary destination binary before final atomic rename
 TEST_VER="$("$TMP_DEST" version 2>/dev/null | awk '{print $2}' || echo "")"
-if [[ "$TEST_VER" != "$VERSION" ]]; then
+if [ "$TEST_VER" != "$VERSION" ]; then
     rm -f "$TMP_DEST"
-    echo "error: destination verification failed for Cippie binary" >&2
+    echo "error: destination binary verification failed" >&2
     exit 1
 fi
 
 mv -f "$TMP_DEST" "$DEST_BINARY"
 
+echo ""
 echo "Cippie ${VERSION} installed successfully."
 echo ""
 echo "Binary:"
 echo "  ${DEST_BINARY}"
 echo ""
 
-if [[ "$NO_MODIFY_PATH" == "true" ]]; then
+if [ "$NO_MODIFY_PATH" = "true" ]; then
     echo "Note: --no-modify-path active. Shell configuration files were not modified."
 fi
 
-# Check PATH
-case ":$PATH:" in
+# PATH check
+case ":${PATH}:" in
     *":${DEST_DIR}:"*)
         ;;
     *)

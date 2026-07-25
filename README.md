@@ -12,7 +12,7 @@
 ### Cách 1 — Tải binary chính thức (khuyến nghị)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/install.sh | bash
 ```
 
 Hoặc kiểm tra script trước khi chạy:
@@ -20,7 +20,7 @@ Hoặc kiểm tra script trước khi chạy:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/install.sh -o install-cippie.sh
 less install-cippie.sh
-sh install-cippie.sh
+bash install-cippie.sh
 ```
 
 Binary được cài vào `$HOME/.local/bin/cippie` theo mặc định.
@@ -29,13 +29,13 @@ Binary được cài vào `$HOME/.local/bin/cippie` theo mặc định.
 
 ```bash
 # Chọn phiên bản cụ thể
-sh install-cippie.sh --version 0.1.0
+bash install-cippie.sh --version 0.1.0
 
 # Đặt prefix khác
-sh install-cippie.sh --prefix "$HOME/.local"
+bash install-cippie.sh --prefix "$HOME/.local"
 
 # Ghi đè bản đang có
-sh install-cippie.sh --force
+bash install-cippie.sh --force
 ```
 
 ### Cách 2 — Build từ source
@@ -69,7 +69,7 @@ cippie test
 ## Gỡ cài đặt
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/uninstall.sh | sh
+curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/uninstall.sh | bash
 ```
 
 Hoặc nếu đã clone repo:
