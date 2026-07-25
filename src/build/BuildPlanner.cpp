@@ -38,7 +38,7 @@ namespace cippie
                 {
                     translated.push_back("/W4");
                 }
-                else if (opt.rfind("-std=c++", 0) == 0)
+                else if (opt.find("-std=c++") == 0)
                 {
                     auto standard = opt.substr(9);
                     if (standard == "23")
@@ -50,7 +50,7 @@ namespace cippie
                 {
                     translated.push_back("/Zi");
                 }
-                else if (opt == "-fPIC" || opt.rfind("-Wl,", 0) == 0)
+                else if (opt == "-fPIC" || opt.find("-Wl,") == 0)
                 {
                     // not applicable on Windows
                 }
@@ -59,6 +59,7 @@ namespace cippie
                     translated.push_back(opt);
                 }
             }
+            translated.push_back("/FS");
             options = std::move(translated);
         }
     }
