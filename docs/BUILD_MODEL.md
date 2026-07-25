@@ -73,3 +73,13 @@ Artifacts are strictly isolated by target triple, configuration, and target name
 - Refuses overwriting non-empty existing directories.
 - Creates `Cippiefile`, `src/main.cpp`, `include/`, `tests/`, `README.md`, `.gitignore`.
 - Immediately buildable and runnable via `cippie run`.
+
+## Self-Hosting Development Pipeline
+
+Cippie compiles itself using its own root `Cippiefile`:
+- Production targets: `cippie_core` (static library) and `cippie` (executable).
+- Development commands:
+  - `cippie build`: Builds Cippie using Cippie.
+  - `cippie test`: Runs Cippie unit & integration tests.
+  - `./scripts/self-host.sh`: Runs 2-generation verification (Gen1 → Gen2).
+- CMake is retained exclusively as a temporary bootstrap fallback for initial checkouts.

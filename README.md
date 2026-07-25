@@ -5,142 +5,103 @@
 
 **Cippie** is a fast, deterministic C++23 build system, project manager, and package manager designed for modern C++ development without CMake wrapper magic.
 
-## 1. Status
+## 1. Quick Start
 
-Current release: **v0.1.0 (Stable Technical Release)**.
-
-Cippie successfully builds multi-target C++ projects, manages local and remote dependencies with lock files, cross-compiles across architectures, and **self-hosts** by building itself from its own `Cippiefile`.
-
-## 2. Supported Systems & Requirements
-
-- **Operating System**: Linux (x86_64, aarch64)
-- **Compiler**: GCC 13+ or Clang 17+ with C++23 support (`-std=c++23`)
-- **Build Tools**: CMake 3.25+ and Ninja (required for bootstrap compilation only)
-
-## 3. Building from Source
+Install the official prebuilt Cippie Linux binary:
 
 ```bash
-# Clone the repository
-git clone https://github.com/dismonjames/cippie.git
-cd cippie
-
-# Run the bootstrap script
-./scripts/bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/install.sh | sh
 ```
 
-## 4. Installation
+Or review the installer before execution:
 
 ```bash
-# Install to /usr/local
-sudo cmake --install build --prefix /usr/local
-
-# Or install to user-local directory (~/.local)
-cmake --install build --prefix "$HOME/.local"
+curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/install.sh -o install-cippie.sh
+less install-cippie.sh
+sh install-cippie.sh
 ```
 
-## 5. Quick Start: Creating a Project
+Create and run a new project:
 
 ```bash
-cippie new my_app
-cd my_app
-
+cippie new hello
+cd hello
 cippie build
 cippie run
 cippie test
 ```
 
-## 6. Cippiefile Basic Example
+## 2. Installation Options
 
-`Cippiefile`:
-```cpp
-project("my_app") {
-    cpp = 23;
-    defaultTarget = "my_app";
-
-    executable("my_app") {
-        entry = "src/main.cpp";
-        sources = ["src/**/*.cpp"];
-        includes = ["include"];
-    }
-}
-```
-
-## 7. Multiple Targets & Dependencies
-
-```cpp
-project("multi_target_demo") {
-    cpp = 23;
-
-    static_library("core") {
-        sources = ["core/src/*.cpp"];
-        public_includes = ["core/include"];
-    }
-
-    executable("app") {
-        entry = "apps/main.cpp";
-        links = ["core"];
-    }
-
-    test("core_test") {
-        entry = "tests/test_core.cpp";
-        links = ["core"];
-    }
-}
-```
-
-## 8. Package Management
+### Option A — Install Official Prebuilt Binary
 
 ```bash
-# Add a package dependency
-cippie add math_lib@1.2.0
+# Default installation to $HOME/.local/bin/cippie
+./scripts/install.sh
 
-# Restore dependencies
-cippie restore --locked
+# Install specific version
+./scripts/install.sh --version 0.1.0
+
+# Install to custom directory prefix
+./scripts/install.sh --prefix "$HOME/.local"
+
+# Force overwrite existing binary
+./scripts/install.sh --force
 ```
 
-Top-level `dependencies` in `Cippiefile`:
-```cpp
-dependencies = [
-    package("fmt", "10.1.0"),
-    path_package("local_utils", "../local_utils"),
-    git_package("my_lib", "https://github.com/user/my_lib.git", tag = "v1.0.0")
-];
-```
-
-## 9. Incremental & Parallel Builds
-
-Cippie automatically tracks header changes via compiler-generated `.d` files and SHA-256 content hashes.
+### Option B — Install from Source (Bootstrap)
 
 ```bash
-# Build using 8 parallel worker threads
-cippie build -j8
+git clone https://github.com/dismonjames/cippie.git
+cd cippie
 
-# Show toolchain diagnostics
-cippie doctor
+# Build Cippie using Cippie self-host pipeline and install
+./scripts/bootstrap.sh --prefix "$HOME/.local"
 ```
 
-## 10. Cross-Compilation Example
+## 3. Uninstalling Cippie
 
 ```bash
-# Cross-compile for ARM64 Linux
-cippie build --target aarch64-linux-gnu
+./scripts/uninstall.sh --prefix "$HOME/.local"
 ```
 
-## 11. Self-Hosting
+*Note: The uninstaller preserves user configuration and package caches (`~/.cache/cippie`, `~/.config/cippie`).*
 
-Cippie builds itself from its root `Cippiefile`:
+## 4. Primary Development Workflow
+
+Cippie is self-hosting and uses Cippie as its primary development build system:
 
 ```bash
-# Build Cippie using the bootstrap Cippie binary
-./build/cippie build cippie
+# Build Cippie using Cippie
+cippie build
 
-# Verify 1st generation binary
-./.cippie/build/x86_64-linux-gnu/debug/cippie/bin/cippie doctor
+# Run Cippie tests
+cippie test
 
-# Build 2nd generation using 1st generation binary
-./.cippie/build/x86_64-linux-gnu/debug/cippie/bin/cippie build cippie
+# Run quality checks (source sync, unit tests, self-host 2-gen verification)
+./scripts/check.sh
 ```
 
-## 12. License
+*CMake is maintained strictly as a temporary bootstrap and recovery fallback.*
+
+## 5. PATH Troubleshooting
+
+If `cippie` is not recognized after installation, ensure `$HOME/.local/bin` is in your `PATH`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Add the line above to your `~/.bashrc` or `~/.zshrc` to make it permanent.
+
+## 6. Self-Hosting Verification
+
+Verify 2-generation self-host compilation:
+
+```bash
+./scripts/self-host.sh --release
+```
+
+## 7. License
 
 Distributed under the terms of the **GNU General Public License v3.0 or later** ([GPL-3.0-or-later](LICENSE)).

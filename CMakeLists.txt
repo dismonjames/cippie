@@ -472,4 +472,10 @@ if(CIPPIE_BUILD_TESTS)
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/InstallationTest.sh"
             "$<TARGET_FILE:cippie>"
     )
+
+    add_test(
+        NAME install_script
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/InstallScriptTest.sh"
+    )
 endif()

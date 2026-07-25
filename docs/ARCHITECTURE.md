@@ -20,3 +20,13 @@ Cippie is designed with modularity, ownership clarity, and platform isolation.
 - `diagnostics`: Diagnostics generation and rich terminal formatting (`DiagnosticPrinter`, `Logger`).
 - `platform`: Operating system isolation (`linux/`, `windows/`, `macos/`).
 - `util`: Shared filesystem, deletion safety (`CleanRunner`), and string utilities.
+
+## Self-Hosting & Bootstrap Architecture
+
+Cippie adopts a 2-generation self-hosting model:
+
+1. **Bootstrap Phase**: CMake builds an initial temporary Cippie compiler binary (`build/cippie`).
+2. **Generation 1 (Gen1)**: The bootstrap Cippie binary compiles Cippie from its own root `Cippiefile`.
+3. **Generation 2 (Gen2)**: The Gen1 Cippie binary compiles Cippie again from `Cippiefile`.
+
+CMake is maintained strictly as a temporary bootstrap fallback for initial source checkouts or broken host environments. Primary Cippie development uses `cippie build` and `cippie test`.
