@@ -26,15 +26,6 @@ namespace cippie
             return cmd;
         }
 
-        std::string wideToUtf8(const wchar_t* wide)
-        {
-            if (!wide || wide[0] == L'\0') return {};
-            int len = WideCharToMultiByte(CP_UTF8, 0, wide, -1, nullptr, 0, nullptr, nullptr);
-            if (len <= 0) return {};
-            std::string result(static_cast<std::size_t>(len) - 1, '\0');
-            WideCharToMultiByte(CP_UTF8, 0, wide, -1, result.data(), len, nullptr, nullptr);
-            return result;
-        }
     }
 
     ProcessResult ProcessRunner::run(const ProcessRequest& request) const

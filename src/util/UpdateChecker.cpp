@@ -150,7 +150,8 @@ namespace cippie
         if (!res.has_value())
             return std::unexpected(Error{
                 .code = ErrorCode::processFailed,
-                .message = "failed to fetch latest release info: " + res.error().message
+                .message = "failed to fetch latest release info: " + res.error().message,
+                .location = {}, .notes = {}
             });
 
         const auto& json = *res;
@@ -159,20 +160,21 @@ namespace cippie
         if (tagPos == std::string::npos)
             return std::unexpected(Error{
                 .code = ErrorCode::parseFailed,
-                .message = "could not find tag_name in GitHub API response"
+                .message = "could not find tag_name in GitHub API response",
+                .location = {}, .notes = {}
             });
 
         auto colonPos = json.find(':', tagPos + std::strlen(tagKey));
         if (colonPos == std::string::npos)
-            return std::unexpected(Error{ .code = ErrorCode::parseFailed, .message = "invalid JSON" });
+            return std::unexpected(Error{ .code = ErrorCode::parseFailed, .message = "invalid JSON", .location = {}, .notes = {} });
 
         auto quotePos = json.find('"', colonPos + 1);
         if (quotePos == std::string::npos)
-            return std::unexpected(Error{ .code = ErrorCode::parseFailed, .message = "invalid JSON" });
+            return std::unexpected(Error{ .code = ErrorCode::parseFailed, .message = "invalid JSON", .location = {}, .notes = {} });
 
         auto endQuotePos = json.find('"', quotePos + 1);
         if (endQuotePos == std::string::npos)
-            return std::unexpected(Error{ .code = ErrorCode::parseFailed, .message = "invalid JSON" });
+            return std::unexpected(Error{ .code = ErrorCode::parseFailed, .message = "invalid JSON", .location = {}, .notes = {} });
 
         return json.substr(quotePos + 1, endQuotePos - quotePos - 1);
     }

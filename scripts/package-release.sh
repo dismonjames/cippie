@@ -130,12 +130,29 @@ else
         cmake -S "${ROOT_DIR}" -B "${ROOT_DIR}/build" -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
         cmake --build "${ROOT_DIR}/build"
-        BUILD_CIPPIE="${ROOT_DIR}/build/cippie"
-        if [ ! -f "$BUILD_CIPPIE" ]; then
-            BUILD_CIPPIE="${ROOT_DIR}/build/cippie.exe"
+
+        BUILD_CIPPIE=""
+        for candidate in \
+            "${ROOT_DIR}/build/cippie" \
+            "${ROOT_DIR}/build/cippie.exe" \
+            "${ROOT_DIR}/build/Release/cippie.exe" \
+            "${ROOT_DIR}/build/Debug/cippie.exe"; do
+            if [ -f "$candidate" ]; then
+                BUILD_CIPPIE="$candidate"
+                break
+            fi
+        done
+
+        if [ -n "$BUILD_CIPPIE" ] && [ "$HOST_OS" = "windows" ] && [[ "$BUILD_CIPPIE" != *.exe ]]; then
+            exe_path="${BUILD_CIPPIE}.exe"
+            if [ -f "$exe_path" ]; then
+                BUILD_CIPPIE="$exe_path"
+            fi
         fi
-        if [ ! -f "$BUILD_CIPPIE" ]; then
+
+        if [ -z "$BUILD_CIPPIE" ]; then
             echo "Error: CMake bootstrap failed to produce a binary" >&2
+            ls -la "${ROOT_DIR}/build/" 2>/dev/null || true
             exit 1
         fi
         echo "Using CMake-bootstrapped Cippie: ${BUILD_CIPPIE}"
