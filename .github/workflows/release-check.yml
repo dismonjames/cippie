@@ -31,9 +31,11 @@ jobs:
       - name: Install build tools (Windows fallback)
         if: matrix.os == 'windows-latest'
         run: |
-          choco install ninja cmake -y
+          choco install ninja -y
           echo "C:\Program Files\Ninja" >> $env:GITHUB_PATH
-          echo "C:\Program Files\CMake\bin" >> $env:GITHUB_PATH
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Package Release (using previous Cippie release)
         shell: bash
