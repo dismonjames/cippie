@@ -57,19 +57,26 @@ namespace cippie
 
         std::string getCompilerVersion(const std::filesystem::path& compilerPath)
         {
-            std::string cmd = "\"" + compilerPath.string() + "\" --version 2>&1";
-            FILE* pipe = popen(cmd.c_str(), "r");
-            if (!pipe) return "unknown";
-
-            std::array<char, 256> buffer;
-            std::string result;
-            if (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
+            auto runCmd = [](const std::string& cmd) -> std::string
             {
-                result = buffer.data();
-                while (!result.empty() && (result.back() == '\n' || result.back() == '\r'))
-                    result.pop_back();
-            }
-            pclose(pipe);
+                FILE* pipe = popen(cmd.c_str(), "r");
+                if (!pipe) return {};
+                std::array<char, 256> buffer;
+                std::string result;
+                if (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
+                {
+                    result = buffer.data();
+                    while (!result.empty() && (result.back() == '\n' || result.back() == '\r'))
+                        result.pop_back();
+                }
+                pclose(pipe);
+                return result;
+            };
+
+            auto escaped = "\"" + compilerPath.string() + "\"";
+            auto result = runCmd(escaped + " --version 2>&1");
+            if (result.empty())
+                result = runCmd(escaped + " 2>&1");
             return result.empty() ? "unknown" : result;
         }
 
@@ -88,27 +95,33 @@ namespace cippie
             candidates.push_back("clang++");
             candidates.push_back("g++");
             candidates.push_back("c++");
+#if defined(_WIN32)
+            candidates.push_back("cl.exe");
+#endif
 
             for (const auto& candidate : candidates)
             {
                 auto found = findInPath(candidate);
-                if (found.has_value())
+                if (!found.has_value()) continue;
+
+                toolchain.cxxCompiler = *found;
+                toolchain.version = getCompilerVersion(*found);
+
+                if (candidate.find("cl.exe") != std::string::npos)
                 {
-                    toolchain.cxxCompiler = *found;
+                    toolchain.name = "msvc";
+                    toolchain.compilerFamily = CompilerFamily::msvc;
+                    toolchain.cCompiler = *found;
+                    toolchain.linker = *found;
+                    auto libFound = findInPath("lib.exe");
+                    toolchain.archiver = libFound.value_or("lib.exe");
+                }
+                else if (candidate.find("clang") != std::string::npos)
+                {
+                    toolchain.name = "clang";
+                    toolchain.compilerFamily = CompilerFamily::clang;
                     toolchain.linker = *found;
 
-                    if (candidate.find("clang") != std::string::npos)
-                    {
-                        toolchain.name = "clang";
-                        toolchain.compilerFamily = CompilerFamily::clang;
-                    }
-                    else
-                    {
-                        toolchain.name = "gcc";
-                        toolchain.compilerFamily = CompilerFamily::gcc;
-                    }
-
-                    // CC
                     if (const char* ccEnv = std::getenv("CC"))
                     {
                         if (*ccEnv != '\0')
@@ -119,12 +132,10 @@ namespace cippie
                     }
                     else
                     {
-                        std::string ccName = (toolchain.compilerFamily == CompilerFamily::clang) ? "clang" : "gcc";
-                        auto cc = findInPath(ccName);
+                        auto cc = findInPath("clang");
                         if (cc.has_value()) toolchain.cCompiler = *cc;
                     }
 
-                    // AR
                     if (const char* arEnv = std::getenv("AR"))
                     {
                         if (*arEnv != '\0')
@@ -138,15 +149,48 @@ namespace cippie
                         auto ar = findInPath("ar");
                         if (ar.has_value()) toolchain.archiver = *ar;
                     }
-
-                    toolchain.version = getCompilerVersion(*found);
-                    return toolchain;
                 }
+                else
+                {
+                    toolchain.name = "gcc";
+                    toolchain.compilerFamily = CompilerFamily::gcc;
+                    toolchain.linker = *found;
+
+                    if (const char* ccEnv = std::getenv("CC"))
+                    {
+                        if (*ccEnv != '\0')
+                        {
+                            auto cc = findInPath(ccEnv);
+                            if (cc.has_value()) toolchain.cCompiler = *cc;
+                        }
+                    }
+                    else
+                    {
+                        auto cc = findInPath("gcc");
+                        if (cc.has_value()) toolchain.cCompiler = *cc;
+                    }
+
+                    if (const char* arEnv = std::getenv("AR"))
+                    {
+                        if (*arEnv != '\0')
+                        {
+                            auto ar = findInPath(arEnv);
+                            if (ar.has_value()) toolchain.archiver = *ar;
+                        }
+                    }
+                    else
+                    {
+                        auto ar = findInPath("ar");
+                        if (ar.has_value()) toolchain.archiver = *ar;
+                    }
+                }
+
+                return toolchain;
             }
 
             return std::unexpected(Error{
                 .code = ErrorCode::compilerNotFound,
-                .message = "no C++ compiler found in PATH (tried clang++, g++, c++); set the CXX environment variable",
+                .message = "no C++ compiler found in PATH (tried clang++, g++, c++, cl.exe); set the CXX environment variable",
                 .location = std::nullopt,
                 .notes = {}
             });
