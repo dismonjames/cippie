@@ -282,8 +282,11 @@ namespace cippie
                     auto displaySource = std::filesystem::relative(cmd.source, std::filesystem::current_path(), ec);
                     if (ec || displaySource.empty()) displaySource = cmd.source;
 
-                    logger_.buildStep(step, totalSteps, "CXX", displaySource.string(),
-                                       cmd.object.filename().string());
+                    std::error_code ec2;
+                    auto displayObj = std::filesystem::relative(cmd.object, std::filesystem::current_path(), ec2);
+                    if (ec2 || displayObj.empty()) displayObj = cmd.object;
+
+                    logger_.buildStep(step, totalSteps, "CXX", displaySource.string(), displayObj.string());
 
                     if (res.exitCode != 0)
                     {
@@ -488,7 +491,12 @@ namespace cippie
                 {
                     std::lock_guard<std::mutex> lock(outputMutex);
                     size_t step = ++currentStep;
-                    logger_.buildStep(step, totalSteps, "LINK", node.targetName);
+                    std::error_code ecLink;
+                    auto displayLinkDir = std::filesystem::relative(
+                        linkCmd.output.parent_path(), std::filesystem::current_path(), ecLink);
+                    if (ecLink || displayLinkDir.empty()) displayLinkDir = linkCmd.output.parent_path();
+                    logger_.buildStep(step, totalSteps, "LINK", displayLinkDir.string(),
+                                       linkCmd.output.filename().string());
 
                     if (res.exitCode != 0)
                     {
