@@ -1,12 +1,15 @@
-name: Release Check
+name: Release
 
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
-  verify-release:
+  release:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,3 +28,27 @@ jobs:
         run: |
           cd dist
           sha256sum -c *.sha256
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          NOTES_FILE="docs/RELEASE_NOTES_${VERSION//./_}.md"
+
+          echo "Creating release for tag ${TAG}..."
+
+          if [ -f "${NOTES_FILE}" ]; then
+            echo "Using release notes from ${NOTES_FILE}"
+            gh release create "${TAG}" \
+              --title "Cippie ${TAG}" \
+              --notes-file "${NOTES_FILE}" \
+              dist/*.tar.gz dist/*.sha256
+          else
+            echo "Warning: ${NOTES_FILE} not found, generating notes from changelog"
+            gh release create "${TAG}" \
+              --title "Cippie ${TAG}" \
+              --generate-notes \
+              dist/*.tar.gz dist/*.sha256
+          fi

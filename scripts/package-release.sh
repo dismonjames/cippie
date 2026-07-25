@@ -5,7 +5,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-VERSION="0.1.0"
+VERSION="0.1.1"
 HOST_ARCH="$(uname -m)"
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 PACKAGE_NAME="cippie-${VERSION}-${HOST_OS}-${HOST_ARCH}"
