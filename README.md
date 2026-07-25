@@ -3,17 +3,19 @@
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
 [![Status: v0.1.0](https://img.shields.io/badge/Status-v0.1.0-green.svg)](docs/RELEASE_NOTES_0_1_0.md)
 
-**Cippie** is a fast, deterministic C++23 build system, project manager, and package manager designed for modern C++ development without CMake wrapper magic.
+**Cippie** là build system, project manager và package manager hiện đại cho C++23, không cần CMake wrapper.
 
-## 1. Quick Start
+---
 
-Install the official prebuilt Cippie Linux binary:
+## Cài đặt nhanh
+
+### Cách 1 — Tải binary chính thức (khuyến nghị)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/install.sh | sh
 ```
 
-Or review the installer before execution:
+Hoặc kiểm tra script trước khi chạy:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/install.sh -o install-cippie.sh
@@ -21,7 +23,38 @@ less install-cippie.sh
 sh install-cippie.sh
 ```
 
-Create and run a new project:
+Binary được cài vào `$HOME/.local/bin/cippie` theo mặc định.
+
+**Tùy chọn:**
+
+```bash
+# Chọn phiên bản cụ thể
+sh install-cippie.sh --version 0.1.0
+
+# Đặt prefix khác
+sh install-cippie.sh --prefix "$HOME/.local"
+
+# Ghi đè bản đang có
+sh install-cippie.sh --force
+```
+
+### Cách 2 — Build từ source
+
+```bash
+git clone https://github.com/dismonjames/cippie.git
+cd cippie
+./scripts/bootstrap.sh --prefix "$HOME/.local"
+```
+
+Script bootstrap tự động:
+1. Build Cippie tạm thời bằng CMake.
+2. Dùng Cippie vừa build để tự biên dịch lại (Gen1).
+3. Chạy toàn bộ test suite.
+4. Cài binary đã tự host vào prefix.
+
+---
+
+## Bắt đầu dự án mới
 
 ```bash
 cippie new hello
@@ -31,77 +64,57 @@ cippie run
 cippie test
 ```
 
-## 2. Installation Options
+---
 
-### Option A — Install Official Prebuilt Binary
-
-```bash
-# Default installation to $HOME/.local/bin/cippie
-./scripts/install.sh
-
-# Install specific version
-./scripts/install.sh --version 0.1.0
-
-# Install to custom directory prefix
-./scripts/install.sh --prefix "$HOME/.local"
-
-# Force overwrite existing binary
-./scripts/install.sh --force
-```
-
-### Option B — Install from Source (Bootstrap)
+## Gỡ cài đặt
 
 ```bash
-git clone https://github.com/dismonjames/cippie.git
-cd cippie
-
-# Build Cippie using Cippie self-host pipeline and install
-./scripts/bootstrap.sh --prefix "$HOME/.local"
+curl -fsSL https://raw.githubusercontent.com/dismonjames/cippie/main/scripts/uninstall.sh | sh
 ```
 
-## 3. Uninstalling Cippie
+Hoặc nếu đã clone repo:
 
 ```bash
 ./scripts/uninstall.sh --prefix "$HOME/.local"
 ```
 
-*Note: The uninstaller preserves user configuration and package caches (`~/.cache/cippie`, `~/.config/cippie`).*
+> Config và package cache (`~/.cache/cippie`, `~/.config/cippie`) được giữ nguyên.
+> Để xóa thủ công: `rm -rf ~/.cache/cippie ~/.config/cippie`
 
-## 4. Primary Development Workflow
+---
 
-Cippie is self-hosting and uses Cippie as its primary development build system:
+## Cài PATH (nếu cần)
 
-```bash
-# Build Cippie using Cippie
-cippie build
-
-# Run Cippie tests
-cippie test
-
-# Run quality checks (source sync, unit tests, self-host 2-gen verification)
-./scripts/check.sh
-```
-
-*CMake is maintained strictly as a temporary bootstrap and recovery fallback.*
-
-## 5. PATH Troubleshooting
-
-If `cippie` is not recognized after installation, ensure `$HOME/.local/bin` is in your `PATH`:
+Nếu lệnh `cippie` chưa nhận ra sau khi cài, thêm vào `~/.bashrc` hoặc `~/.zshrc`:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Add the line above to your `~/.bashrc` or `~/.zshrc` to make it permanent.
+---
 
-## 6. Self-Hosting Verification
+## Workflow phát triển Cippie
 
-Verify 2-generation self-host compilation:
+Cippie tự build bằng chính mình:
 
 ```bash
-./scripts/self-host.sh --release
+cippie build       # build Cippie bằng Cippie
+cippie test        # chạy test suite
+./scripts/check.sh # kiểm tra toàn bộ: source sync, build, test, self-host 2-gen
 ```
 
-## 7. License
+> CMake chỉ được dùng để bootstrap lần đầu hoặc khôi phục khi self-host bị lỗi.
 
-Distributed under the terms of the **GNU General Public License v3.0 or later** ([GPL-3.0-or-later](LICENSE)).
+---
+
+## Cập nhật
+
+```bash
+sh install-cippie.sh --version <phiên-bản-mới> --force
+```
+
+---
+
+## License
+
+[GNU General Public License v3.0 or later](LICENSE)
