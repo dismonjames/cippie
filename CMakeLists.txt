@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(
     Cippie
-    VERSION 0.1.2
+    VERSION 0.1.3
     DESCRIPTION "A C++ build system and package manager"
     LANGUAGES CXX
 )

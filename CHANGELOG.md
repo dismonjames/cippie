@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-25
+
+### Fixed
+- Windows build compatibility: added native Windows process runner (`CreateProcess`), fixed POSIX file locking for Windows.
+- Release workflow now uses previous Cippie release to self-host build, removing CMake dependency from CI.
+
 ## [0.1.2] - 2026-07-25
 
 ### Added
