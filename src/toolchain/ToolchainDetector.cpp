@@ -9,6 +9,12 @@
 #include <sstream>
 #include <vector>
 
+#if defined(_WIN32)
+#include <io.h>
+#define popen _popen
+#define pclose _pclose
+#endif
+
 namespace cippie
 {
     namespace
@@ -31,7 +37,11 @@ namespace cippie
 
             std::stringstream ss(pathEnv);
             std::string dir;
+#if defined(_WIN32)
+            while (std::getline(ss, dir, ';'))
+#else
             while (std::getline(ss, dir, ':'))
+#endif
             {
                 if (dir.empty()) continue;
                 auto fullPath = std::filesystem::path(dir) / candidate;

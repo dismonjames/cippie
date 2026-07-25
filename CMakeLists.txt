@@ -92,6 +92,7 @@ target_compile_options(
         $<$<CXX_COMPILER_ID:MSVC>:
             /W4
             /permissive-
+            /D_CRT_SECURE_NO_WARNINGS
         >
 )
 
