@@ -1,0 +1,31 @@
+project("project_b_multi") {
+    cpp = 23;
+    defaultTarget = "cli_app";
+
+    static_library("core") {
+        sources = ["core/src/*.cpp"];
+        public_includes = ["core/include"];
+        defines = ["PROJECT_B_CORE=1"];
+    }
+
+    shared_library("util") {
+        sources = ["util/src/*.cpp"];
+        public_includes = ["util/include"];
+        links = ["core"];
+    }
+
+    executable("cli_app") {
+        entry = "apps/cli/main.cpp";
+        links = ["util"];
+    }
+
+    executable("gui_app") {
+        entry = "apps/gui/main.cpp";
+        links = ["core"];
+    }
+
+    test("core_test") {
+        entry = "tests/test_core.cpp";
+        links = ["core"];
+    }
+}

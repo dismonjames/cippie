@@ -1,0 +1,12 @@
+project("project_c_consumer") {
+    cpp = 23;
+
+    dependencies = [
+        path_package("local_math", "../local_math")
+    ];
+
+    executable("consumer") {
+        entry = "src/main.cpp";
+        links = ["local_math"];
+    }
+}

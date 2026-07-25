@@ -1,0 +1,10 @@
+project("project_a_basic") {
+    cpp = 23;
+    defaultTarget = "project_a";
+
+    executable("project_a") {
+        entry = "src/main.cpp";
+        sources = ["src/helper.cpp"];
+        includes = ["include"];
+    }
+}

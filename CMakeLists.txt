@@ -92,6 +92,11 @@ target_compile_options(
 add_executable(cippie src/main.cpp)
 target_link_libraries(cippie PRIVATE cippie_core)
 
+install(
+    TARGETS cippie
+    RUNTIME DESTINATION bin
+)
+
 if(CIPPIE_BUILD_TESTS)
     enable_testing()
 
@@ -436,12 +441,35 @@ if(CIPPIE_BUILD_TESTS)
         COMMAND
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/SelfHostFirstGenTest.sh"
             "$<TARGET_FILE:cippie>"
+            "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 
     add_test(
         NAME self_host_second_gen
         COMMAND
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/SelfHostSecondGenTest.sh"
+            "$<TARGET_FILE:cippie>"
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+
+    add_executable(
+        cippie_version_consistency_tests
+        tests/unit/VersionConsistencyTests.cpp
+    )
+    target_link_libraries(cippie_version_consistency_tests PRIVATE cippie_core)
+    add_test(NAME version_consistency COMMAND cippie_version_consistency_tests)
+
+    add_executable(
+        cippie_exit_code_tests
+        tests/unit/ExitCodeTests.cpp
+    )
+    target_link_libraries(cippie_exit_code_tests PRIVATE cippie_core)
+    add_test(NAME exit_code COMMAND cippie_exit_code_tests)
+
+    add_test(
+        NAME installation
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/InstallationTest.sh"
             "$<TARGET_FILE:cippie>"
     )
 endif()

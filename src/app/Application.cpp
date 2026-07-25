@@ -85,7 +85,7 @@ namespace cippie
                 return runDoctor(commandLine);
 
             case CommandType::unknown:
-                logger_.error("unknown command");
+                logger_.error("invalid or unrecognized command line option");
                 printHelp();
                 return toInt(ExitCode::invalidArguments);
         }
@@ -129,7 +129,7 @@ namespace cippie
         {
             if (restoreProject(commandLine) != toInt(ExitCode::success))
             {
-                return toInt(ExitCode::buildFailed);
+                return toInt(ExitCode::dependencyResolutionFailed);
             }
         }
 
@@ -156,12 +156,12 @@ namespace cippie
         if (!toolchainRes.has_value())
         {
             logger_.error(toolchainRes.error().message);
-            return toInt(ExitCode::buildFailed);
+            return toInt(ExitCode::toolchainFailed);
         }
         const auto toolchain = std::move(*toolchainRes);
 
         BuildPlanner planner;
-        const auto plan = planner.create(project, *selectedTarget, toolchain, "debug");
+        const auto plan = planner.create(project, *selectedTarget, toolchain, commandLine.configuration);
 
         BuildEngine engine(logger_);
         if (!engine.execute(plan, toolchain, commandLine.jobs, commandLine.verbose))
@@ -207,7 +207,7 @@ namespace cippie
         {
             if (restoreProject(commandLine) != toInt(ExitCode::success))
             {
-                return toInt(ExitCode::buildFailed);
+                return toInt(ExitCode::dependencyResolutionFailed);
             }
         }
 
@@ -234,7 +234,7 @@ namespace cippie
         if (!toolchainRes.has_value())
         {
             logger_.error(toolchainRes.error().message);
-            return toInt(ExitCode::buildFailed);
+            return toInt(ExitCode::toolchainFailed);
         }
         const auto toolchain = std::move(*toolchainRes);
 
@@ -245,11 +245,11 @@ namespace cippie
                 "cannot run target binary for '" + toolchain.target.toString() +
                 "' on host '" + toolchain.host.toString() + "'; use 'cippie build' instead"
             );
-            return toInt(ExitCode::generalError);
+            return toInt(ExitCode::toolchainFailed);
         }
 
         BuildPlanner planner;
-        const auto plan = planner.create(project, *selectedTarget, toolchain, "debug");
+        const auto plan = planner.create(project, *selectedTarget, toolchain, commandLine.configuration);
 
         BuildEngine engine(logger_);
         if (!engine.execute(plan, toolchain, commandLine.jobs, commandLine.verbose))
@@ -317,7 +317,7 @@ namespace cippie
         {
             if (restoreProject(commandLine) != toInt(ExitCode::success))
             {
-                return toInt(ExitCode::buildFailed);
+                return toInt(ExitCode::dependencyResolutionFailed);
             }
         }
 
@@ -344,7 +344,7 @@ namespace cippie
         if (!toolchainRes.has_value())
         {
             logger_.error(toolchainRes.error().message);
-            return toInt(ExitCode::buildFailed);
+            return toInt(ExitCode::toolchainFailed);
         }
         const auto toolchain = std::move(*toolchainRes);
 
@@ -355,7 +355,7 @@ namespace cippie
                 "cannot run tests for cross target '" + toolchain.target.toString() +
                 "' on host '" + toolchain.host.toString() + "'"
             );
-            return toInt(ExitCode::generalError);
+            return toInt(ExitCode::toolchainFailed);
         }
 
         BuildEngine engine(logger_);
@@ -367,7 +367,7 @@ namespace cippie
         for (const auto* testTarget : testTargets)
         {
             BuildPlanner planner;
-            const auto plan = planner.create(project, *testTarget, toolchain, "debug");
+            const auto plan = planner.create(project, *testTarget, toolchain, commandLine.configuration);
 
             if (!engine.execute(plan, toolchain, commandLine.jobs, commandLine.verbose))
             {
@@ -420,7 +420,7 @@ namespace cippie
 
         std::cout << failedCount << " test target" << (failedCount == 1 ? "" : "s")
                   << " failed (" << passedCount << " passed)\n";
-        return 7;
+        return toInt(ExitCode::testFailed);
     }
 
     int Application::cleanProject(const CommandLine& commandLine)
@@ -510,7 +510,7 @@ namespace cippie
         if (!graphRes.has_value())
         {
             logger_.error(graphRes.error().message);
-            return toInt(ExitCode::configurationError);
+            return toInt(ExitCode::dependencyResolutionFailed);
         }
 
         if (!commandLine.locked)
@@ -766,6 +766,9 @@ namespace cippie
             << "Options:\n"
             << "  -j, --jobs N         Number of parallel build workers\n"
             << "  -v, --verbose        Verbose build output\n"
+            << "  -q, --quiet          Quiet output\n"
+            << "  --debug              Build debug configuration (default)\n"
+            << "  --release            Build release configuration\n"
             << "  --target <triple>    Cross-compile for target triple (e.g. aarch64-linux-gnu)\n"
             << "  --toolchain <name>   Use named toolchain from ~/.config/cippie/toolchains/\n"
             << "  --offline            Prohibit network operations\n"

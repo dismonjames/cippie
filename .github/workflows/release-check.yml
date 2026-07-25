@@ -1,0 +1,27 @@
+name: Release Check
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+
+      - name: Package Release
+        run: |
+          ./scripts/package-release.sh
+
+      - name: Verify Checksum
+        run: |
+          cd dist
+          sha256sum -c *.sha256

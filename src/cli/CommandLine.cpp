@@ -47,6 +47,11 @@ namespace cippie
         if (argc < 2) return result;
 
         result.type = parseCommandType(argv[1]);
+        if (result.type == CommandType::unknown)
+        {
+            return result;
+        }
+
         bool forwardingArguments = false;
 
         for (int index = 2; index < argc; ++index)
@@ -66,18 +71,29 @@ namespace cippie
             }
 
             if (argument == "-v" || argument == "--verbose") { result.verbose = true; continue; }
+            if (argument == "-q" || argument == "--quiet") { result.quiet = true; continue; }
             if (argument == "--cache") { result.cleanCacheOnly = true; continue; }
             if (argument == "--all") { result.cleanAll = true; continue; }
             if (argument == "--offline") { result.offline = true; continue; }
             if (argument == "--locked") { result.locked = true; continue; }
+            if (argument == "--debug") { result.configuration = "debug"; continue; }
+            if (argument == "--release") { result.configuration = "release"; continue; }
 
-            if ((argument == "-j" || argument == "--jobs") && index + 1 < argc)
+            if (argument == "-j" || argument == "--jobs")
             {
-                ++index;
-                if (!parseJobCount(argv[index], result.jobs))
+                if (index + 1 < argc)
+                {
+                    ++index;
+                    if (!parseJobCount(argv[index], result.jobs))
+                        result.type = CommandType::unknown;
+                }
+                else
+                {
                     result.type = CommandType::unknown;
+                }
                 continue;
             }
+
             if (argument.starts_with("-j"))
             {
                 if (!parseJobCount(argument.substr(2), result.jobs))
@@ -92,10 +108,17 @@ namespace cippie
             }
 
             // --target <triple>
-            if (argument == "--target" && index + 1 < argc)
+            if (argument == "--target")
             {
-                ++index;
-                result.targetTriple = std::string(argv[index]);
+                if (index + 1 < argc)
+                {
+                    ++index;
+                    result.targetTriple = std::string(argv[index]);
+                }
+                else
+                {
+                    result.type = CommandType::unknown;
+                }
                 continue;
             }
             if (argument.starts_with("--target="))
@@ -105,15 +128,29 @@ namespace cippie
             }
 
             // --toolchain <name>
-            if (argument == "--toolchain" && index + 1 < argc)
+            if (argument == "--toolchain")
             {
-                ++index;
-                result.toolchainName = std::string(argv[index]);
+                if (index + 1 < argc)
+                {
+                    ++index;
+                    result.toolchainName = std::string(argv[index]);
+                }
+                else
+                {
+                    result.type = CommandType::unknown;
+                }
                 continue;
             }
             if (argument.starts_with("--toolchain="))
             {
                 result.toolchainName = std::string(argument.substr(12));
+                continue;
+            }
+
+            // Any other flag starting with '-' is unrecognized option
+            if (argument.starts_with("-"))
+            {
+                result.type = CommandType::unknown;
                 continue;
             }
 

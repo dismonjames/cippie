@@ -4,7 +4,8 @@
 set -Eeuo pipefail
 
 CIPPIE_BINARY="$(realpath "${1:?Usage: SelfHostFirstGenTest.sh <cippie-binary>}")"
-CIPPIE_SRC_DIR="${2:-/home/minh/Documents/cippie}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CIPPIE_SRC_DIR="${2:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT

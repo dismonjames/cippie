@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build build-essential g++ clang
+
+      - name: Bootstrap Build & Test
+        env:
+          CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+          CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+        run: |
+          ./scripts/bootstrap.sh
+
+      - name: Test Installation
+        run: |
+          cmake --install build --prefix /tmp/cippie-test-install
+          /tmp/cippie-test-install/bin/cippie version
+          /tmp/cippie-test-install/bin/cippie doctor
+
+      - name: Test Release Packaging
+        run: |
+          ./scripts/package-release.sh

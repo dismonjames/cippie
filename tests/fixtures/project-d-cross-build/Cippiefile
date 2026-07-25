@@ -1,0 +1,6 @@
+project("project_d_cross") {
+    cpp = 23;
+    executable("cross_app") {
+        entry = "src/main.cpp";
+    }
+}

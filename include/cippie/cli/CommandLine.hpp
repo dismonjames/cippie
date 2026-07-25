@@ -29,10 +29,12 @@ namespace cippie
         std::string target;                         // positional target name
         std::optional<std::string> targetTriple;    // --target <triple>
         std::string toolchainName;                  // --toolchain <name>
+        std::string configuration{"debug"};         // --debug / --release
         std::filesystem::path workingDirectory;
         std::vector<std::string> forwardedArguments;
         unsigned int jobs{0};
         bool verbose{false};
+        bool quiet{false};
         bool cleanCacheOnly{false};
         bool cleanAll{false};
         bool offline{false};

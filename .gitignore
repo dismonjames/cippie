@@ -1,4 +1,7 @@
-build/
+/build/
+/build-*/
+/dist/
+/.cippie/
 cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
@@ -6,7 +9,6 @@ cmake_install.cmake
 compile_commands.json
 CTestTestfile.cmake
 Testing/
-.cippie/
 *.o
 *.obj
 *.a
@@ -16,7 +18,7 @@ Testing/
 *.exe
 *.out
 *.log
-core
+/core
 core.*
 vgcore.*
 *.profraw
@@ -28,4 +30,3 @@ vgcore.*
 *~
 .DS_Store
 Thumbs.db
-build-asan/
