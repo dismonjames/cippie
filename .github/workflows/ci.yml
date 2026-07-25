@@ -16,12 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install dependencies (CMake only for initial bootstrap, needed for this CI)
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build build-essential g++ clang
 
-      - name: Bootstrap Build & Test
+      - name: Bootstrap with CMake (no prior Cippie release on first build)
         env:
           CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
           CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
@@ -36,4 +36,4 @@ jobs:
 
       - name: Test Release Packaging
         run: |
-          ./scripts/package-release.sh
+          ./scripts/package-release.sh --cippie-bin /tmp/cippie-test-install/bin/cippie

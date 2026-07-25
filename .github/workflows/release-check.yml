@@ -19,24 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build g++
-
-      - name: Install dependencies (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew install cmake ninja
-
-      - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          choco install ninja -y
-          echo "C:\Program Files\Ninja" >> $env:GITHUB_PATH
-
-      - name: Package Release (bootstrap + self-host)
+      - name: Package Release (using previous Cippie release)
         shell: bash
         run: |
           ./scripts/package-release.sh
