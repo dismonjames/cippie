@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-25
+
+### Added
+- MSVC (cl.exe) toolchain detection — Cippie now auto-detects Microsoft Visual C++ on Windows.
+- MSVC flag translation — `-Wall`, `-Wextra`, `-Wpedantic` → `/W4`; `-std=c++23` → `/std:c++latest`; `-g` → `/Zi`.
+- MSVC artifact naming — `.obj` objects, `.lib` static libraries, `.dll` shared libraries, `.exe` executables.
+- MSVC archive support — `lib.exe` with `/NOLOGO /OUT:` format.
+- MSVC dependency generation — `/sourceDependencies` instead of `-MMD`/`-MP`/`-MF`.
+
+### Changed
+- Self-host build on Windows now sets `CXX=cl.exe` and `CC=cl.exe` for MSVC compatibility.
+
 ## [0.1.3] - 2026-07-25
 
 ### Fixed

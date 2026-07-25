@@ -3,7 +3,7 @@
 # POSIX sh compatible — works with bash, dash, ash, zsh
 set -eu
 
-VERSION="${CIPPIE_INSTALL_VERSION:-0.1.3}"
+VERSION="${CIPPIE_INSTALL_VERSION:-0.1.4}"
 PREFIX="${CIPPIE_INSTALL_PREFIX:-$HOME/.local}"
 INSTALL_DIR=""
 FORCE=false
@@ -18,7 +18,7 @@ Usage:
   install.sh [options]
 
 Options:
-  --version <ver>      Version to install (default: 0.1.3)
+  --version <ver>      Version to install (default: 0.1.4)
   --prefix <path>      Installation prefix (default: $HOME/.local)
   --install-dir <path> Direct binary installation directory
   --force              Overwrite existing installation
