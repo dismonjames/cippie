@@ -6,6 +6,6 @@ namespace cippie
 {
     [[nodiscard]] constexpr std::string_view version() noexcept
     {
-        return "0.1.1";
+        return "0.1.2";
     }
 }
