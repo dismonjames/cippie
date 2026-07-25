@@ -1,6 +1,6 @@
 # Cippie Windows Installer (PowerShell)
 param(
-    [string]$version = "0.1.4",
+    [string]$version = "0.1.5",
     [string]$prefix = "$env:LOCALAPPDATA\Programs",
     [string]$installDir = "",
     [switch]$force = $false
@@ -16,7 +16,7 @@ Usage:
   install.ps1 [options]
 
 Options:
-  -version <ver>       Version to install (default: 0.1.4)
+  -version <ver>       Version to install (default: 0.1.5)
   -prefix <path>       Installation prefix (default: `$env:LOCALAPPDATA\Programs)
   -installDir <path>   Direct binary installation directory
   -force               Overwrite existing installation

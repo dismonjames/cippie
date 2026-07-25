@@ -6,7 +6,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-VERSION="0.1.4"
+VERSION="0.1.5"
 BOOTSTRAP_WITH_CMAKE=false
 CIPPIE_BIN=""
 
@@ -70,6 +70,12 @@ BUILD_CIPPIE=""
 if [ -n "$CIPPIE_BIN" ]; then
     BUILD_CIPPIE="$CIPPIE_BIN"
     echo "Using provided Cippie binary: ${BUILD_CIPPIE}"
+elif [ -x "${ROOT_DIR}/build/cippie" ]; then
+    BUILD_CIPPIE="${ROOT_DIR}/build/cippie"
+    echo "Using local build Cippie: ${BUILD_CIPPIE}"
+elif [ -x "${ROOT_DIR}/build/cippie.exe" ]; then
+    BUILD_CIPPIE="${ROOT_DIR}/build/cippie.exe"
+    echo "Using local build Cippie: ${BUILD_CIPPIE}"
 elif command -v cippie &>/dev/null; then
     BUILD_CIPPIE="$(command -v cippie)"
     echo "Using Cippie from PATH: ${BUILD_CIPPIE}"
@@ -180,16 +186,27 @@ if [ "$HOST_OS" = "windows" ]; then
     export CXX="${CXX:-cl.exe}"
     export CC="${CC:-cl.exe}"
 fi
-"${BUILD_CIPPIE}" build -j"$(nproc 2>/dev/null || echo 4)" --release cippie
+echo "Cleaning previous Cippie build state..."
+"${BUILD_CIPPIE}" clean --all >/dev/null 2>&1 || true
+BUILD_JOBS="$(nproc 2>/dev/null || echo 4)"
+if [ "$HOST_OS" = "windows" ]; then
+    # The bootstrap binary is older than the current sources, so it does not
+    # yet have the /FS translation needed for safe parallel MSVC PDB writes.
+    # Run the first self-hosted build sequentially, then subsequent releases can
+    # use the generated binary's behavior.
+    BUILD_JOBS=1
+fi
+"${BUILD_CIPPIE}" build -j"${BUILD_JOBS}" --release cippie
 
 # Locate self-hosted binary
 HOST_TRIPLE=$("${BUILD_CIPPIE}" doctor 2>/dev/null | grep "^Host triple" | awk '{print $NF}' || echo "")
 GEN1_CIPPIE=""
 if [ -n "${HOST_TRIPLE}" ]; then
     GEN1_CIPPIE="${ROOT_DIR}/.cippie/build/${HOST_TRIPLE}/release/cippie/bin/cippie"
+    [ "$HOST_OS" = "windows" ] && GEN1_CIPPIE="${GEN1_CIPPIE}.exe"
 fi
 if [ -z "${GEN1_CIPPIE}" ] || [ ! -f "${GEN1_CIPPIE}" ]; then
-    GEN1_CIPPIE=$(find "${ROOT_DIR}/.cippie/build" -name 'cippie' -type f 2>/dev/null | head -1)
+    GEN1_CIPPIE=$(find "${ROOT_DIR}/.cippie/build" \( -name 'cippie' -o -name 'cippie.exe' \) -type f 2>/dev/null | head -1)
 fi
 if [ -z "${GEN1_CIPPIE}" ] || [ ! -f "${GEN1_CIPPIE}" ]; then
     echo "Error: could not locate self-hosted Cippie binary" >&2

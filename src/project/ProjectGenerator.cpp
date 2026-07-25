@@ -98,7 +98,7 @@ namespace cippie
 
         // README.md
         std::ofstream readme(projectDir / "README.md");
-        readme << "# " << projectName << "\n\nBuilt with Cippie v0.1.0.\n\n"
+        readme << "# " << projectName << "\n\nBuilt with Cippie v0.1.5.\n\n"
                << "## Building and Running\n\n"
                << "```bash\n"
                << "# Build the project\n"

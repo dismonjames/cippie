@@ -7,9 +7,9 @@
 
 int main()
 {
-    // 1. Verify cippie::version() is exactly "0.1.0"
+    // 1. Verify cippie::version() is exactly "0.1.5"
     std::string ver = std::string(cippie::version());
-    assert(ver == "0.1.0");
+    assert(ver == "0.1.5");
     assert(ver.find("-dev") == std::string::npos);
 
     // 2. Read CMakeLists.txt and verify version matches
@@ -20,13 +20,13 @@ int main()
         bool found = false;
         while (std::getline(cmakeFile, line))
         {
-            if (line.find("VERSION 0.1.0") != std::string::npos)
+            if (line.find("VERSION 0.1.5") != std::string::npos)
             {
                 found = true;
                 break;
             }
         }
-        assert(found && "CMakeLists.txt must contain 'VERSION 0.1.0'");
+        assert(found && "CMakeLists.txt must contain 'VERSION 0.1.5'");
     }
 
     std::cout << "Version consistency test passed: " << ver << "\n";
