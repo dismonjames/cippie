@@ -14,7 +14,8 @@ namespace cippie
         testFailed = 7,
         toolchainFailed = 8,
         packageFailed = 9,
-        internalFailure = 10
+        internalFailure = 10,
+        updateFailed = 11
     };
 
     [[nodiscard]] constexpr int toInt(ExitCode code) noexcept

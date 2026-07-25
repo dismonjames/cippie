@@ -17,6 +17,7 @@ namespace cippie
         linkerFailed,
         processFailed,
         cacheCorrupted,
-        packageResolutionFailed
+        packageResolutionFailed,
+        updateFailed
     };
 }

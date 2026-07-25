@@ -23,6 +23,7 @@ namespace cippie
         int addPackage(const CommandLine& commandLine);
         int removePackage(const CommandLine& commandLine);
         int runDoctor(const CommandLine& commandLine);
+        int runUpdate(const CommandLine& commandLine);
 
         void printHelp() const;
         void printVersion() const;

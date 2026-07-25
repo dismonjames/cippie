@@ -57,6 +57,7 @@ add_library(
     src/util/ArchiveExtractor.cpp
     src/util/BuildLock.cpp
     src/util/CleanRunner.cpp
+    src/util/UpdateChecker.cpp
     src/util/Path.cpp
     src/util/SHA256.cpp
 )

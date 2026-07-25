@@ -16,6 +16,7 @@
 #include <cippie/toolchain/ToolchainRegistry.hpp>
 #include <cippie/util/BuildLock.hpp>
 #include <cippie/util/CleanRunner.hpp>
+#include <cippie/util/UpdateChecker.hpp>
 
 #include <fstream>
 #include <filesystem>
@@ -83,6 +84,9 @@ namespace cippie
 
             case CommandType::doctor:
                 return runDoctor(commandLine);
+
+            case CommandType::update:
+                return runUpdate(commandLine);
 
             case CommandType::unknown:
                 logger_.error("invalid or unrecognized command line option");
@@ -745,6 +749,17 @@ namespace cippie
         return toInt(ExitCode::success);
     }
 
+    int Application::runUpdate(const CommandLine& commandLine)
+    {
+        auto res = UpdateChecker::performUpdate(commandLine.force);
+        if (!res.has_value())
+        {
+            logger_.error(res.error().message);
+            return toInt(ExitCode::updateFailed);
+        }
+        return toInt(ExitCode::success);
+    }
+
     void Application::printHelp() const
     {
         std::cout
@@ -761,6 +776,7 @@ namespace cippie
             << "  remove <pkg>     Remove a package dependency\n"
             << "  restore          Restore project dependencies (--offline / --locked)\n"
             << "  doctor           Show toolchain and environment diagnostics\n"
+            << "  update           Update Cippie to the latest version (--force to ignore cooldown)\n"
             << "  help             Show this help\n"
             << "  version          Show the Cippie version\n\n"
             << "Options:\n"

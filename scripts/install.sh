@@ -1,6 +1,6 @@
 #!/bin/sh
-# Cippie Official Linux Binary Installer
-# POSIX sh compatible — works with bash, dash, ash
+# Cippie Official Binary Installer
+# POSIX sh compatible — works with bash, dash, ash, zsh
 set -eu
 
 VERSION="${CIPPIE_INSTALL_VERSION:-0.1.1}"
@@ -75,15 +75,22 @@ case "$RAW_ARCH" in
     x86_64|amd64)
         ARCH="x86_64"
         ;;
+    arm64|aarch64)
+        ARCH="aarch64"
+        ;;
     *)
         ARCH="$RAW_ARCH"
         ;;
 esac
 
-if [ "$OS" != "linux" ] || [ "$ARCH" != "x86_64" ]; then
-    echo "error: no prebuilt Cippie release is available for ${OS}-${ARCH}" >&2
-    exit 1
-fi
+# Normalize OS names
+case "$OS" in
+    darwin) OS="darwin" ;;
+    linux) OS="linux" ;;
+    mingw64_nt-*|msys_nt-*|cygwin_nt-*) OS="windows" ;;
+esac
+
+echo "Detected platform: ${OS}-${ARCH}"
 
 PLATFORM="${OS}-${ARCH}"
 PACKAGE_NAME="cippie-${VERSION}-${PLATFORM}"
@@ -96,11 +103,15 @@ else
     DEST_DIR="${PREFIX}/bin"
 fi
 
-DEST_BINARY="${DEST_DIR}/cippie"
+BINARY_NAME="cippie"
+if [ "$OS" = "windows" ]; then
+    BINARY_NAME="cippie.exe"
+fi
+DEST_BINARY="${DEST_DIR}/${BINARY_NAME}"
 
 # Handle existing binary
 if [ -e "$DEST_BINARY" ] && [ "$FORCE" != "true" ]; then
-    if [ -x "$DEST_BINARY" ]; then
+    if [ -x "$DEST_BINARY" ] || [ -f "$DEST_BINARY" ]; then
         INST_VER="$("$DEST_BINARY" version 2>/dev/null | awk '{print $2}' || echo "")"
         if [ "$INST_VER" = "$VERSION" ]; then
             echo "Cippie ${VERSION} is already installed at ${DEST_BINARY}."
@@ -111,8 +122,7 @@ if [ -e "$DEST_BINARY" ] && [ "$FORCE" != "true" ]; then
     exit 1
 fi
 
-TMP_DIR="$(mktemp -d)"
-# shellcheck disable=SC2064
+TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t cippie)"
 trap "rm -rf '${TMP_DIR}'" EXIT
 
 # Build download URLs
@@ -129,7 +139,6 @@ esac
 
 echo "Downloading Cippie ${VERSION} (${PLATFORM})..."
 
-# Download files safely
 fetch_url() {
     url="$1"
     output="$2"
@@ -179,7 +188,7 @@ if echo "$TAR_LIST" | grep -q '\.\.'; then
     exit 1
 fi
 
-EXPECTED_BIN="${PACKAGE_NAME}/bin/cippie"
+EXPECTED_BIN="${PACKAGE_NAME}/bin/${BINARY_NAME}"
 if ! echo "$TAR_LIST" | grep -qx "${EXPECTED_BIN}"; then
     echo "error: archive does not contain expected executable ${EXPECTED_BIN}" >&2
     exit 1

@@ -20,6 +20,7 @@ namespace cippie
             if (value == "remove") return CommandType::remove;
             if (value == "restore") return CommandType::restore;
             if (value == "doctor") return CommandType::doctor;
+            if (value == "update") return CommandType::update;
             return CommandType::unknown;
         }
 
@@ -74,6 +75,7 @@ namespace cippie
             if (argument == "-q" || argument == "--quiet") { result.quiet = true; continue; }
             if (argument == "--cache") { result.cleanCacheOnly = true; continue; }
             if (argument == "--all") { result.cleanAll = true; continue; }
+            if (argument == "--force" || argument == "-f") { result.force = true; continue; }
             if (argument == "--offline") { result.offline = true; continue; }
             if (argument == "--locked") { result.locked = true; continue; }
             if (argument == "--debug") { result.configuration = "debug"; continue; }

@@ -20,6 +20,7 @@ namespace cippie
         remove,
         restore,
         doctor,
+        update,
         unknown
     };
 
@@ -35,6 +36,7 @@ namespace cippie
         unsigned int jobs{0};
         bool verbose{false};
         bool quiet{false};
+        bool force{false};
         bool cleanCacheOnly{false};
         bool cleanAll{false};
         bool offline{false};
