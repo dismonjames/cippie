@@ -16,7 +16,8 @@ namespace cippie
             std::size_t current,
             std::size_t total,
             std::string_view action,
-            std::string_view subject
+            std::string_view subject,
+            std::string_view output = {}
         ) const;
     };
 }

@@ -23,11 +23,13 @@ namespace cippie
         std::size_t current,
         std::size_t total,
         std::string_view action,
-        std::string_view subject
+        std::string_view subject,
+        std::string_view output
     ) const
     {
-        std::cout
-            << '[' << current << '/' << total << "] "
-            << action << ' ' << subject << '\n';
+        std::cout << '[' << current << '/' << total << "] " << action << ' ' << subject;
+        if (!output.empty())
+            std::cout << " -> " << output;
+        std::cout << '\n';
     }
 }

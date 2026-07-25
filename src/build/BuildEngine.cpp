@@ -282,7 +282,8 @@ namespace cippie
                     auto displaySource = std::filesystem::relative(cmd.source, std::filesystem::current_path(), ec);
                     if (ec || displaySource.empty()) displaySource = cmd.source;
 
-                    logger_.buildStep(step, totalSteps, "CXX", displaySource.string());
+                    logger_.buildStep(step, totalSteps, "CXX", displaySource.string(),
+                                       cmd.object.filename().string());
 
                     if (res.exitCode != 0)
                     {
