@@ -19,6 +19,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install build tools (fallback for platforms without prior release)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+      - name: Install build tools (macOS fallback)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install cmake ninja
+      - name: Install build tools (Windows fallback)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install ninja cmake -y
+          echo "C:\Program Files\Ninja" >> $env:GITHUB_PATH
+          echo "C:\Program Files\CMake\bin" >> $env:GITHUB_PATH
+
       - name: Package Release (using previous Cippie release)
         shell: bash
         run: |

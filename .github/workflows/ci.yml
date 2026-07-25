@@ -36,4 +36,4 @@ jobs:
 
       - name: Test Release Packaging
         run: |
-          ./scripts/package-release.sh --cippie-bin /tmp/cippie-test-install/bin/cippie
+          ./scripts/package-release.sh --cippie-bin /tmp/cippie-test-install/bin/cippie --version $(/tmp/cippie-test-install/bin/cippie version | awk '{print $2}')

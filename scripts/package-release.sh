@@ -83,38 +83,63 @@ elif [ "$BOOTSTRAP_WITH_CMAKE" = true ]; then
         BUILD_CIPPIE="${ROOT_DIR}/build/cippie.exe"
     fi
 else
-    echo "No Cippie binary available. Downloading latest release..."
+    echo "No Cippie binary available. Trying to download previous release..."
     DOWNLOAD_DIR="${STAGE_DIR}/download"
     mkdir -p "$DOWNLOAD_DIR"
 
-    LATEST_TAG=$(curl -fsSL https://api.github.com/repos/dismonjames/cippie/releases/latest \
-        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\(.*\)",*/\1/')
-    if [ -z "$LATEST_TAG" ]; then
-        echo "Error: could not fetch latest release tag" >&2
-        exit 1
+    # Try previous git tag first (more reliable than GitHub API "latest")
+    PREVIOUS_TAG=""
+    if git -C "${ROOT_DIR}" rev-parse --git-dir &>/dev/null; then
+        PREVIOUS_TAG=$(git -C "${ROOT_DIR}" tag --sort=-v:refname | head -1 || true)
     fi
-    echo "Latest release: ${LATEST_TAG}"
 
-    LATEST_VERSION="${LATEST_TAG#v}"
-    TARBALL_NAME="cippie-${LATEST_VERSION}-${HOST_OS}-${HOST_ARCH}.tar.gz"
-    TARBALL_URL="https://github.com/dismonjames/cippie/releases/download/${LATEST_TAG}/${TARBALL_NAME}"
+    DOWNLOAD_OK=false
 
-    echo "Downloading ${TARBALL_NAME}..."
-    curl -fsSL "$TARBALL_URL" -o "${DOWNLOAD_DIR}/${TARBALL_NAME}"
+    for TRY_TAG in "${PREVIOUS_TAG}" "$(curl -fsSL https://api.github.com/repos/dismonjames/cippie/releases/latest 2>/dev/null \
+        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\(.*\)",*/\1/')"; do
 
-    echo "Extracting..."
-    tar -xzf "${DOWNLOAD_DIR}/${TARBALL_NAME}" -C "$DOWNLOAD_DIR"
+        [ -z "$TRY_TAG" ] && continue
+        TRY_VER="${TRY_TAG#v}"
+        TARBALL_NAME="cippie-${TRY_VER}-${HOST_OS}-${HOST_ARCH}.tar.gz"
+        TARBALL_URL="https://github.com/dismonjames/cippie/releases/download/${TRY_TAG}/${TARBALL_NAME}"
 
-    BINARY_NAME="cippie"
-    [ "$HOST_OS" = "windows" ] && BINARY_NAME="cippie.exe"
-    BUILD_CIPPIE="${DOWNLOAD_DIR}/cippie-${LATEST_VERSION}-${HOST_OS}-${HOST_ARCH}/bin/${BINARY_NAME}"
+        echo "Trying ${TARBALL_URL}..."
 
-    if [ ! -f "$BUILD_CIPPIE" ]; then
-        echo "Error: downloaded release does not contain expected binary" >&2
-        exit 1
+        if curl -fsSL "$TARBALL_URL" -o "${DOWNLOAD_DIR}/${TARBALL_NAME}" 2>/dev/null; then
+            echo "Downloaded ${TARBALL_NAME}"
+
+            echo "Extracting..."
+            tar -xzf "${DOWNLOAD_DIR}/${TARBALL_NAME}" -C "$DOWNLOAD_DIR"
+
+            BINARY_NAME="cippie"
+            [ "$HOST_OS" = "windows" ] && BINARY_NAME="cippie.exe"
+            BUILD_CIPPIE="${DOWNLOAD_DIR}/cippie-${TRY_VER}-${HOST_OS}-${HOST_ARCH}/bin/${BINARY_NAME}"
+
+            if [ -f "$BUILD_CIPPIE" ]; then
+                chmod +x "$BUILD_CIPPIE"
+                echo "Using downloaded Cippie ${TRY_TAG}: ${BUILD_CIPPIE}"
+                DOWNLOAD_OK=true
+                break
+            fi
+        fi
+    done
+
+    if [ "$DOWNLOAD_OK" != true ]; then
+        echo "No prebuilt Cippie binary available for ${HOST_OS}-${HOST_ARCH}."
+        echo "Falling back to CMake bootstrap..."
+        cmake -S "${ROOT_DIR}" -B "${ROOT_DIR}/build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        cmake --build "${ROOT_DIR}/build"
+        BUILD_CIPPIE="${ROOT_DIR}/build/cippie"
+        if [ ! -f "$BUILD_CIPPIE" ]; then
+            BUILD_CIPPIE="${ROOT_DIR}/build/cippie.exe"
+        fi
+        if [ ! -f "$BUILD_CIPPIE" ]; then
+            echo "Error: CMake bootstrap failed to produce a binary" >&2
+            exit 1
+        fi
+        echo "Using CMake-bootstrapped Cippie: ${BUILD_CIPPIE}"
     fi
-    chmod +x "$BUILD_CIPPIE"
-    echo "Using downloaded Cippie ${LATEST_TAG}: ${BUILD_CIPPIE}"
 fi
 
 if [ ! -f "$BUILD_CIPPIE" ]; then
