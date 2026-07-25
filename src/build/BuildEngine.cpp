@@ -258,16 +258,27 @@ namespace cippie
                 req.executable = cmd.compiler;
                 req.captureOutput = true;
 
+                auto compilerName = cmd.compiler.filename().string();
+                bool isMsvc = (compilerName == "cl.exe" || compilerName == "cl");
+
                 for (const auto& opt : cmd.options) req.arguments.push_back(opt);
                 for (const auto& def : cmd.definitions) req.arguments.push_back("-D" + def);
                 for (const auto& inc : cmd.includeDirectories) req.arguments.push_back("-I" + inc.string());
 
-                req.arguments.push_back("-MMD");
-                req.arguments.push_back("-MP");
-                req.arguments.push_back("-MF");
-                req.arguments.push_back(node.depFilePath.string());
-                req.arguments.push_back("-MT");
-                req.arguments.push_back(cmd.object.string());
+                if (isMsvc)
+                {
+                    req.arguments.push_back("/sourceDependencies");
+                    req.arguments.push_back(node.depFilePath.string());
+                }
+                else
+                {
+                    req.arguments.push_back("-MMD");
+                    req.arguments.push_back("-MP");
+                    req.arguments.push_back("-MF");
+                    req.arguments.push_back(node.depFilePath.string());
+                    req.arguments.push_back("-MT");
+                    req.arguments.push_back(cmd.object.string());
+                }
 
                 req.arguments.push_back("-c");
                 req.arguments.push_back(cmd.source.string());
@@ -419,8 +430,19 @@ namespace cippie
                 req.executable = archCmd.archiver;
                 req.captureOutput = true;
 
-                for (const auto& opt : archCmd.options) req.arguments.push_back(opt);
-                req.arguments.push_back(archCmd.output.string());
+                auto archiverStr = archCmd.archiver.filename().string();
+                bool isMsvcArchiver = (archiverStr == "lib.exe" || archiverStr == "lib");
+
+                if (isMsvcArchiver)
+                {
+                    req.arguments.push_back("/NOLOGO");
+                    req.arguments.push_back("/OUT:" + archCmd.output.string());
+                }
+                else
+                {
+                    for (const auto& opt : archCmd.options) req.arguments.push_back(opt);
+                    req.arguments.push_back(archCmd.output.string());
+                }
                 for (const auto& obj : archCmd.objects) req.arguments.push_back(obj.string());
 
                 auto res = process.run(req);

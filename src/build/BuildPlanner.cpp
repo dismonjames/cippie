@@ -26,6 +26,41 @@ namespace cippie
                 container.push_back(path);
             }
         }
+
+        void translateOptions(std::vector<std::string>& options, CompilerFamily family)
+        {
+            if (family != CompilerFamily::msvc) return;
+
+            std::vector<std::string> translated;
+            for (auto& opt : options)
+            {
+                if (opt == "-Wall" || opt == "-Wextra" || opt == "-Wpedantic" || opt == "-Wconversion" || opt == "-Wshadow")
+                {
+                    translated.push_back("/W4");
+                }
+                else if (opt.rfind("-std=c++", 0) == 0)
+                {
+                    auto standard = opt.substr(9);
+                    if (standard == "23")
+                        translated.push_back("/std:c++latest");
+                    else
+                        translated.push_back(opt);
+                }
+                else if (opt == "-g")
+                {
+                    translated.push_back("/Zi");
+                }
+                else if (opt == "-fPIC" || opt.rfind("-Wl,", 0) == 0)
+                {
+                    // not applicable on Windows
+                }
+                else
+                {
+                    translated.push_back(opt);
+                }
+            }
+            options = std::move(translated);
+        }
     }
 
     BuildPlan BuildPlanner::create(
@@ -109,15 +144,20 @@ namespace cippie
 
                 if (pkgTarget.type == TargetType::staticLibrary)
                 {
-                    targetPlan.artifactOutput = targetBuildDirectory / "lib" / ("lib" + pkgName + ".a");
+                    targetPlan.artifactOutput = targetBuildDirectory / "lib" /
+                        (toolchain.compilerFamily == CompilerFamily::msvc ? pkgName + ".lib" : "lib" + pkgName + ".a");
                 }
                 else if (pkgTarget.type == TargetType::sharedLibrary)
                 {
-                    targetPlan.artifactOutput = targetBuildDirectory / "lib" / ("lib" + pkgName + ".so");
+                    targetPlan.artifactOutput = targetBuildDirectory / "lib" /
+                        (toolchain.compilerFamily == CompilerFamily::msvc ? pkgName + ".dll" : "lib" + pkgName + ".so");
                 }
                 else
                 {
-                    targetPlan.artifactOutput = targetBuildDirectory / "bin" / pkgName;
+                    auto exeName = pkgName;
+                    if (toolchain.compilerFamily == CompilerFamily::msvc && exeName.find('.') == std::string::npos)
+                        exeName += ".exe";
+                    targetPlan.artifactOutput = targetBuildDirectory / "bin" / exeName;
                 }
 
                 artifactMap[pkgName] = targetPlan.artifactOutput;
@@ -127,7 +167,7 @@ namespace cippie
                 {
                     std::filesystem::path relSource = source.filename();
                     auto object = targetBuildDirectory / "obj" / relSource;
-                    object += ".o";
+                    object += (toolchain.compilerFamily == CompilerFamily::msvc) ? ".obj" : ".o";
 
                     CompileCommand cmd;
                     cmd.compiler = toolchain.cxxCompiler;
@@ -151,6 +191,7 @@ namespace cippie
                         cmd.options.push_back("-fPIC");
                     }
 
+                    translateOptions(cmd.options, toolchain.compilerFamily);
                     targetPlan.compileCommands.push_back(std::move(cmd));
                 }
 
@@ -159,7 +200,8 @@ namespace cippie
                     ArchiveCommand archCmd;
                     archCmd.archiver = toolchain.archiver;
                     archCmd.output = targetPlan.artifactOutput;
-                    archCmd.options = {"rcs"};
+                    if (toolchain.compilerFamily != CompilerFamily::msvc)
+                        archCmd.options = {"rcs"};
                     for (const auto& cCmd : targetPlan.compileCommands)
                     {
                         archCmd.objects.push_back(cCmd.object);
@@ -177,7 +219,10 @@ namespace cippie
                     }
                     if (pkgTarget.type == TargetType::sharedLibrary)
                     {
-                        linkCmd.options.push_back("-shared");
+                        if (toolchain.compilerFamily == CompilerFamily::msvc)
+                            linkCmd.options.push_back("/LD");
+                        else
+                            linkCmd.options.push_back("-shared");
                     }
                     targetPlan.linkCommand = std::move(linkCmd);
                 }
@@ -216,18 +261,20 @@ namespace cippie
 
             if (currentTarget->type == TargetType::staticLibrary)
             {
-                targetPlan.artifactOutput =
-                    targetBuildDirectory / "lib" / ("lib" + currentTarget->name + ".a");
+                targetPlan.artifactOutput = targetBuildDirectory / "lib" /
+                    (toolchain.compilerFamily == CompilerFamily::msvc ? currentTarget->name + ".lib" : "lib" + currentTarget->name + ".a");
             }
             else if (currentTarget->type == TargetType::sharedLibrary)
             {
-                targetPlan.artifactOutput =
-                    targetBuildDirectory / "lib" / ("lib" + currentTarget->name + ".so");
+                targetPlan.artifactOutput = targetBuildDirectory / "lib" /
+                    (toolchain.compilerFamily == CompilerFamily::msvc ? currentTarget->name + ".dll" : "lib" + currentTarget->name + ".so");
             }
             else
             {
-                targetPlan.artifactOutput =
-                    targetBuildDirectory / "bin" / currentTarget->name;
+                auto exeName = currentTarget->name;
+                if (toolchain.compilerFamily == CompilerFamily::msvc && exeName.find('.') == std::string::npos)
+                    exeName += ".exe";
+                targetPlan.artifactOutput = targetBuildDirectory / "bin" / exeName;
             }
 
             artifactMap[currentTarget->name] = targetPlan.artifactOutput;
@@ -279,7 +326,7 @@ namespace cippie
                 }
 
                 auto object = targetBuildDirectory / "obj" / relSource;
-                object += ".o";
+                object += (toolchain.compilerFamily == CompilerFamily::msvc) ? ".obj" : ".o";
 
                 CompileCommand cmd;
                 cmd.compiler = toolchain.cxxCompiler;
@@ -312,6 +359,7 @@ namespace cippie
                     cmd.options.push_back(opt);
                 }
 
+                translateOptions(cmd.options, toolchain.compilerFamily);
                 targetPlan.compileCommands.push_back(std::move(cmd));
             }
 
@@ -320,7 +368,8 @@ namespace cippie
                 ArchiveCommand archCmd;
                 archCmd.archiver = toolchain.archiver;
                 archCmd.output = targetPlan.artifactOutput;
-                archCmd.options = {"rcs"};
+                if (toolchain.compilerFamily != CompilerFamily::msvc)
+                    archCmd.options = {"rcs"};
                 for (const auto& cCmd : targetPlan.compileCommands)
                 {
                     archCmd.objects.push_back(cCmd.object);
@@ -340,7 +389,10 @@ namespace cippie
 
                 if (currentTarget->type == TargetType::sharedLibrary)
                 {
-                    linkCmd.options.push_back("-shared");
+                    if (toolchain.compilerFamily == CompilerFamily::msvc)
+                        linkCmd.options.push_back("/LD");
+                    else
+                        linkCmd.options.push_back("-shared");
                 }
 
                 for (const auto& opt : currentTarget->linkOptions)
@@ -357,7 +409,7 @@ namespace cippie
                         linkCmd.libraries.push_back(libArtifact.string());
 
                         auto libDir = libArtifact.parent_path();
-                        if (libArtifact.extension() == ".so")
+                        if (toolchain.compilerFamily != CompilerFamily::msvc && libArtifact.extension() == ".so")
                         {
                             linkCmd.options.push_back("-Wl,-rpath," + libDir.string());
                         }
