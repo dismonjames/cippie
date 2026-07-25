@@ -46,7 +46,6 @@ add_library(
     src/package/SemanticVersion.cpp
     src/package/VersionRequirement.cpp
     src/platform/Platform.cpp
-    src/platform/linux/LinuxProcessRunner.cpp
     src/process/Process.cpp
     src/project/ProjectGenerator.cpp
     src/project/ProjectLocator.cpp
@@ -61,6 +60,12 @@ add_library(
     src/util/Path.cpp
     src/util/SHA256.cpp
 )
+
+if(WIN32)
+    target_sources(cippie_core PRIVATE src/platform/windows/WindowsProcessRunner.cpp)
+else()
+    target_sources(cippie_core PRIVATE src/platform/linux/LinuxProcessRunner.cpp)
+endif()
 
 target_include_directories(
     cippie_core

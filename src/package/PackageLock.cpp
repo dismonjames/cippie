@@ -1,10 +1,17 @@
 #include <cippie/package/PackageLock.hpp>
 
+#include <system_error>
+
+#if defined(_WIN32)
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#include <sys/locking.h>
+#else
 #include <fcntl.h>
 #include <sys/file.h>
 #include <unistd.h>
-
-#include <system_error>
+#endif
 
 namespace cippie
 {
@@ -42,8 +49,13 @@ namespace cippie
     {
         if (m_fd != -1)
         {
+#if defined(_WIN32)
+            _locking(m_fd, _LK_UNLCK, 0);
+            _close(m_fd);
+#else
             flock(m_fd, LOCK_UN);
             close(m_fd);
+#endif
             m_fd = -1;
         }
     }
@@ -58,8 +70,32 @@ namespace cippie
         std::filesystem::create_directories(locksDir, ec);
 
         const auto lockFilePath = locksDir / (packageName + ".lock");
+        auto pathStr = lockFilePath.string();
 
-        int fd = open(lockFilePath.c_str(), O_RDWR | O_CREAT, 0666);
+#if defined(_WIN32)
+        int fd = _open(pathStr.c_str(), _O_RDWR | _O_CREAT, _S_IREAD | _S_IWRITE);
+        if (fd == -1)
+        {
+            return std::unexpected(Error{
+                .code = ErrorCode::fileReadFailed,
+                .message = "failed to open package lock file: " + lockFilePath.string(),
+                .location = std::nullopt,
+                .notes = {}
+            });
+        }
+
+        if (_locking(fd, _LK_LOCK, 0) != 0)
+        {
+            _close(fd);
+            return std::unexpected(Error{
+                .code = ErrorCode::processFailed,
+                .message = "failed to acquire lock for package: " + packageName,
+                .location = std::nullopt,
+                .notes = {}
+            });
+        }
+#else
+        int fd = open(pathStr.c_str(), O_RDWR | O_CREAT, 0666);
         if (fd == -1)
         {
             return std::unexpected(Error{
@@ -80,6 +116,7 @@ namespace cippie
                 .notes = {}
             });
         }
+#endif
 
         return PackageLock(fd, lockFilePath);
     }
