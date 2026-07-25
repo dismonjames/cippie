@@ -164,6 +164,16 @@ if [ ! -f "$BUILD_CIPPIE" ]; then
     exit 1
 fi
 
+# Ensure MinGW runtime DLLs are findable on Windows
+if [ "$HOST_OS" = "windows" ]; then
+    MINGW_DIRS="/mingw64/bin /c/mingw64/bin /c/msys64/mingw64/bin"
+    for d in $MINGW_DIRS; do
+        if [ -d "$d" ]; then
+            export PATH="$d:$PATH"
+        fi
+    done
+fi
+
 # Verify the Cippie binary works
 echo "Verifying Cippie binary..."
 "${BUILD_CIPPIE}" version || {
