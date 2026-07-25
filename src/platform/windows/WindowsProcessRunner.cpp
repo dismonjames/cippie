@@ -1,3 +1,4 @@
+#if defined(_WIN32) || defined(_WIN64)
 #include <cippie/process/ProcessRunner.hpp>
 
 #include <windows.h>
@@ -152,3 +153,4 @@ namespace cippie
         return result;
     }
 }
+#endif

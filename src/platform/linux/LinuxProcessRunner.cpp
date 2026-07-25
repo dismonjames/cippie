@@ -1,3 +1,4 @@
+#if !defined(_WIN32) && !defined(_WIN64)
 #include <cippie/process/ProcessRunner.hpp>
 
 #include <array>
@@ -194,3 +195,4 @@ namespace cippie
         };
     }
 }
+#endif

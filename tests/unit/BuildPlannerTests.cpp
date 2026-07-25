@@ -51,6 +51,28 @@ int main()
     const auto binPath = tPlan.linkCommand->output.string();
     assert(binPath.find(".cippie/build/x86_64-linux-gnu/debug/client/bin/client") != std::string::npos);
 
+    // Verify MSVC flag translation (-std=c++23 -> /std:c++latest)
+    cippie::Toolchain msvcToolchain;
+    msvcToolchain.name = "msvc";
+    msvcToolchain.compilerFamily = cippie::CompilerFamily::msvc;
+    msvcToolchain.cxxCompiler = "cl.exe";
+    msvcToolchain.target = cippie::TargetTriple{.arch = cippie::Arch::x86_64, .vendor = "pc", .os = cippie::Os::windows, .abi = cippie::Abi::msvc};
+
+    auto msvcPlan = planner.create(project, target, msvcToolchain, "debug");
+    assert(msvcPlan.targetPlans.size() == 1);
+    const auto& msvcTPlan = msvcPlan.targetPlans[0];
+    assert(msvcTPlan.compileCommands.size() == 2);
+    const auto& msvcOptions = msvcTPlan.compileCommands[0].options;
+    bool foundStdLatest = false;
+    bool foundInvalidStd = false;
+    for (const auto& opt : msvcOptions)
+    {
+        if (opt == "/std:c++latest") foundStdLatest = true;
+        if (opt == "-std=c++23") foundInvalidStd = true;
+    }
+    assert(foundStdLatest);
+    assert(!foundInvalidStd);
+
     std::filesystem::remove_all(root);
     std::cout << "All BuildPlanner tests passed!\n";
     return 0;

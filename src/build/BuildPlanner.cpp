@@ -40,11 +40,17 @@ namespace cippie
                 }
                 else if (opt.find("-std=c++") == 0)
                 {
-                    auto standard = opt.substr(9);
-                    if (standard == "23")
+                    auto standard = opt.substr(8);
+                    if (standard == "23" || standard == "2b" || standard == "latest")
                         translated.push_back("/std:c++latest");
+                    else if (standard == "20" || standard == "2a")
+                        translated.push_back("/std:c++20");
+                    else if (standard == "17" || standard == "1c")
+                        translated.push_back("/std:c++17");
+                    else if (standard == "14")
+                        translated.push_back("/std:c++14");
                     else
-                        translated.push_back(opt);
+                        translated.push_back("/std:c++" + standard);
                 }
                 else if (opt == "-g")
                 {

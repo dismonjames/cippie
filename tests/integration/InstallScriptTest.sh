@@ -11,7 +11,7 @@ PACKAGE_SCRIPT="${ROOT_DIR}/scripts/package-release.sh"
 
 echo "=== Running Installer & Uninstaller Integration Tests ==="
 
-VERSION="0.1.5"
+VERSION="0.1.6"
 
 # 1. Package release tarball locally
 (cd "${ROOT_DIR}" && "${PACKAGE_SCRIPT}")

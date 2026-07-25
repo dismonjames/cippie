@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-07-25
+
+### Fixed
+- MSVC compiler flag translation — fixed substring index for `-std=c++` flags (`substr(8)` instead of `substr(9)`), ensuring `-std=c++23` correctly translates to `/std:c++latest` instead of being ignored by `cl.exe`.
+- Expanded MSVC standard flag mapping to support `/std:c++latest`, `/std:c++20`, `/std:c++17`, and `/std:c++14`.
+
+## [0.1.5] - 2026-07-25
+
+### Changed
+- Maintenance patch release and stability fixes across cross-platform build pipelines.
+
 ## [0.1.4] - 2026-07-25
 
 ### Added

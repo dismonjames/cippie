@@ -13,6 +13,7 @@ project("cippie") {
             "src/package/*.cpp",
             "src/platform/*.cpp",
             "src/platform/linux/*.cpp",
+            "src/platform/windows/*.cpp",
             "src/process/*.cpp",
             "src/project/*.cpp",
             "src/toolchain/*.cpp",

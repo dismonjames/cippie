@@ -269,6 +269,9 @@ namespace cippie
                 {
                     req.arguments.push_back("/sourceDependencies");
                     req.arguments.push_back(node.depFilePath.string());
+                    req.arguments.push_back("/c");
+                    req.arguments.push_back(cmd.source.string());
+                    req.arguments.push_back("/Fo" + cmd.object.string());
                 }
                 else
                 {
@@ -278,12 +281,11 @@ namespace cippie
                     req.arguments.push_back(node.depFilePath.string());
                     req.arguments.push_back("-MT");
                     req.arguments.push_back(cmd.object.string());
+                    req.arguments.push_back("-c");
+                    req.arguments.push_back(cmd.source.string());
+                    req.arguments.push_back("-o");
+                    req.arguments.push_back(cmd.object.string());
                 }
-
-                req.arguments.push_back("-c");
-                req.arguments.push_back(cmd.source.string());
-                req.arguments.push_back("-o");
-                req.arguments.push_back(cmd.object.string());
 
                 auto res = process.run(req);
 
@@ -502,11 +504,27 @@ namespace cippie
                 req.executable = linkCmd.linker;
                 req.captureOutput = true;
 
+                auto linkerName = linkCmd.linker.filename().string();
+                bool isLinkExe = (linkerName == "link.exe" || linkerName == "link");
+                bool isClExe = (linkerName == "cl.exe" || linkerName == "cl");
+
                 for (const auto& opt : linkCmd.options) req.arguments.push_back(opt);
                 for (const auto& obj : linkCmd.objects) req.arguments.push_back(obj.string());
                 for (const auto& lib : linkCmd.libraries) req.arguments.push_back(lib);
-                req.arguments.push_back("-o");
-                req.arguments.push_back(linkCmd.output.string());
+
+                if (isLinkExe)
+                {
+                    req.arguments.push_back("/OUT:" + linkCmd.output.string());
+                }
+                else if (isClExe)
+                {
+                    req.arguments.push_back("/Fe" + linkCmd.output.string());
+                }
+                else
+                {
+                    req.arguments.push_back("-o");
+                    req.arguments.push_back(linkCmd.output.string());
+                }
 
                 auto res = process.run(req);
 
