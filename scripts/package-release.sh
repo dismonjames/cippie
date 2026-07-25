@@ -175,6 +175,11 @@ echo "Verifying Cippie binary..."
 
 echo "Building Cippie ${VERSION} with Cippie (self-host)..."
 cd "${ROOT_DIR}"
+# On Windows with MSVC, set CXX/CC so ToolchainDetector finds cl.exe
+if [ "$HOST_OS" = "windows" ]; then
+    export CXX="${CXX:-cl.exe}"
+    export CC="${CC:-cl.exe}"
+fi
 "${BUILD_CIPPIE}" build -j"$(nproc 2>/dev/null || echo 4)" --release cippie
 
 # Locate self-hosted binary
