@@ -164,6 +164,15 @@ if [ ! -f "$BUILD_CIPPIE" ]; then
     exit 1
 fi
 
+# Verify the Cippie binary works
+echo "Verifying Cippie binary..."
+"${BUILD_CIPPIE}" version || {
+    echo "Error: Cippie binary at ${BUILD_CIPPIE} cannot execute" >&2
+    echo "If on Windows, ensure MinGW DLLs are in PATH" >&2
+    ls -la "$(dirname "${BUILD_CIPPIE}")" 2>/dev/null || true
+    exit 1
+}
+
 echo "Building Cippie ${VERSION} with Cippie (self-host)..."
 cd "${ROOT_DIR}"
 "${BUILD_CIPPIE}" build -j"$(nproc 2>/dev/null || echo 4)" --release cippie
