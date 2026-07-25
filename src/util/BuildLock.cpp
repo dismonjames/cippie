@@ -70,7 +70,7 @@ namespace cippie
         auto pathStr = lockFilePath.string();
 
 #if defined(_WIN32)
-        int fd = _open(pathStr.c_str(), _O_RDWR | _O_CREAT, _S_IREAD | _S_IWRITE);
+        int fd = _open(pathStr.c_str(), _O_RDWR | _O_CREAT, 0644);
         if (fd == -1)
         {
             return std::unexpected(Error{
@@ -81,7 +81,7 @@ namespace cippie
             });
         }
 
-        if (_locking(fd, _LK_LOCK, 0) != 0)
+        if (_locking(fd, _LK_NBLCK, 0) != 0)
         {
             _close(fd);
             return std::unexpected(Error{

@@ -148,7 +148,8 @@ if [ ! -f "$BUILD_CIPPIE" ]; then
 fi
 
 echo "Building Cippie ${VERSION} with Cippie (self-host)..."
-(cd "${ROOT_DIR}" && "${BUILD_CIPPIE}" build -j"$(nproc 2>/dev/null || echo 4)" --release cippie)
+cd "${ROOT_DIR}"
+"${BUILD_CIPPIE}" build -j"$(nproc 2>/dev/null || echo 4)" --release cippie
 
 # Locate self-hosted binary
 HOST_TRIPLE=$("${BUILD_CIPPIE}" doctor 2>/dev/null | grep "^Host triple" | awk '{print $NF}' || echo "")
