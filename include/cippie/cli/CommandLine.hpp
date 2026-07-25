@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -18,16 +19,19 @@ namespace cippie
         add,
         remove,
         restore,
+        doctor,
         unknown
     };
 
     struct CommandLine
     {
         CommandType type{CommandType::help};
-        std::string target;
+        std::string target;                         // positional target name
+        std::optional<std::string> targetTriple;    // --target <triple>
+        std::string toolchainName;                  // --toolchain <name>
         std::filesystem::path workingDirectory;
         std::vector<std::string> forwardedArguments;
-        unsigned int jobs{0}; // 0 = default to hardware concurrency
+        unsigned int jobs{0};
         bool verbose{false};
         bool cleanCacheOnly{false};
         bool cleanAll{false};

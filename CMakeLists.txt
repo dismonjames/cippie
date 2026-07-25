@@ -53,6 +53,7 @@ add_library(
     src/project/TargetSelector.cpp
     src/toolchain/TargetTriple.cpp
     src/toolchain/ToolchainDetector.cpp
+    src/toolchain/ToolchainRegistry.cpp
     src/util/ArchiveExtractor.cpp
     src/util/BuildLock.cpp
     src/util/CleanRunner.cpp
@@ -399,6 +400,48 @@ if(CIPPIE_BUILD_TESTS)
         NAME cippie_add_remove
         COMMAND
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/CippieAddRemoveTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_executable(
+        cippie_target_triple_tests
+        tests/unit/TargetTripleTests.cpp
+    )
+    target_link_libraries(cippie_target_triple_tests PRIVATE cippie_core)
+    add_test(NAME target_triple COMMAND cippie_target_triple_tests)
+
+    add_executable(
+        cippie_toolchain_detector_tests
+        tests/unit/ToolchainDetectorTests.cpp
+    )
+    target_link_libraries(cippie_toolchain_detector_tests PRIVATE cippie_core)
+    add_test(NAME toolchain_detector COMMAND cippie_toolchain_detector_tests)
+
+    add_test(
+        NAME doctor
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/DoctorTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME cross_target_cache_isolation
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/CrossTargetCacheIsolationTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME self_host_first_gen
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/SelfHostFirstGenTest.sh"
+            "$<TARGET_FILE:cippie>"
+    )
+
+    add_test(
+        NAME self_host_second_gen
+        COMMAND
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/SelfHostSecondGenTest.sh"
             "$<TARGET_FILE:cippie>"
     )
 endif()

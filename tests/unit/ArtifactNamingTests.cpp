@@ -27,7 +27,7 @@ int main()
     project.targets = {staticLib, sharedLib, execTarget};
 
     cippie::Toolchain toolchain;
-    toolchain.target = cippie::TargetTriple{.arch = "x86_64", .vendor = "pc", .sys = "linux", .abi = "gnu"};
+    toolchain.target = cippie::TargetTriple{.arch = cippie::Arch::x86_64, .vendor = "pc", .os = cippie::Os::linux_, .abi = cippie::Abi::gnu};
 
     cippie::BuildPlanner planner;
 

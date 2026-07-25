@@ -1,10 +1,31 @@
 project("cippie") {
     cpp = 23;
+    defaultTarget = "cippie";
+
+    static_library("cippie_core") {
+        sources = [
+            "src/app/*.cpp",
+            "src/build/*.cpp",
+            "src/cache/*.cpp",
+            "src/cli/*.cpp",
+            "src/config/*.cpp",
+            "src/diagnostics/*.cpp",
+            "src/package/*.cpp",
+            "src/platform/*.cpp",
+            "src/platform/linux/*.cpp",
+            "src/process/*.cpp",
+            "src/project/*.cpp",
+            "src/toolchain/*.cpp",
+            "src/util/*.cpp"
+        ];
+        includes = ["include"];
+        public_includes = ["include"];
+        compileOptions = ["-Wall", "-Wextra", "-Wpedantic", "-Wconversion", "-Wshadow"];
+    }
 
     executable("cippie") {
         entry = "src/main.cpp";
-        sources = ["src/**/*.cpp"];
-        includes = ["include"];
-        dependencies = [];
+        links = ["cippie_core"];
+        compileOptions = ["-Wall", "-Wextra", "-Wpedantic", "-Wconversion", "-Wshadow"];
     }
 }

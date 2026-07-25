@@ -13,6 +13,7 @@
 #include <cippie/project/ProjectLocator.hpp>
 #include <cippie/project/TargetSelector.hpp>
 #include <cippie/toolchain/ToolchainDetector.hpp>
+#include <cippie/toolchain/ToolchainRegistry.hpp>
 #include <cippie/util/BuildLock.hpp>
 #include <cippie/util/CleanRunner.hpp>
 
@@ -20,6 +21,7 @@
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 namespace cippie
 {
@@ -78,6 +80,9 @@ namespace cippie
 
             case CommandType::remove:
                 return removePackage(commandLine);
+
+            case CommandType::doctor:
+                return runDoctor(commandLine);
 
             case CommandType::unknown:
                 logger_.error("unknown command");
@@ -139,8 +144,21 @@ namespace cippie
 
         const Target* selectedTarget = *selectedTargetRes;
 
+        DetectOptions detectOpts{
+            .toolchainName = commandLine.toolchainName.empty()
+                ? std::optional<std::string>{}
+                : std::optional<std::string>(commandLine.toolchainName),
+            .targetTripleStr = commandLine.targetTriple
+        };
+
         ToolchainDetector detector;
-        const auto toolchain = detector.detect();
+        auto toolchainRes = detector.detect(detectOpts);
+        if (!toolchainRes.has_value())
+        {
+            logger_.error(toolchainRes.error().message);
+            return toInt(ExitCode::buildFailed);
+        }
+        const auto toolchain = std::move(*toolchainRes);
 
         BuildPlanner planner;
         const auto plan = planner.create(project, *selectedTarget, toolchain, "debug");
@@ -204,8 +222,31 @@ namespace cippie
 
         const Target* selectedTarget = *selectedTargetRes;
 
+        DetectOptions detectOpts{
+            .toolchainName = commandLine.toolchainName.empty()
+                ? std::optional<std::string>{}
+                : std::optional<std::string>(commandLine.toolchainName),
+            .targetTripleStr = commandLine.targetTriple
+        };
+
         ToolchainDetector detector;
-        const auto toolchain = detector.detect();
+        auto toolchainRes = detector.detect(detectOpts);
+        if (!toolchainRes.has_value())
+        {
+            logger_.error(toolchainRes.error().message);
+            return toInt(ExitCode::buildFailed);
+        }
+        const auto toolchain = std::move(*toolchainRes);
+
+        // Cross-compilation: refuse to run non-native target
+        if (!toolchain.target.isNativeRunnable(toolchain.host))
+        {
+            logger_.error(
+                "cannot run target binary for '" + toolchain.target.toString() +
+                "' on host '" + toolchain.host.toString() + "'; use 'cippie build' instead"
+            );
+            return toInt(ExitCode::generalError);
+        }
 
         BuildPlanner planner;
         const auto plan = planner.create(project, *selectedTarget, toolchain, "debug");
@@ -290,8 +331,33 @@ namespace cippie
         }
 
         const auto testTargets = *selectedTargetsRes;
+
+        DetectOptions detectOpts{
+            .toolchainName = commandLine.toolchainName.empty()
+                ? std::optional<std::string>{}
+                : std::optional<std::string>(commandLine.toolchainName),
+            .targetTripleStr = commandLine.targetTriple
+        };
+
         ToolchainDetector detector;
-        const auto toolchain = detector.detect();
+        auto toolchainRes = detector.detect(detectOpts);
+        if (!toolchainRes.has_value())
+        {
+            logger_.error(toolchainRes.error().message);
+            return toInt(ExitCode::buildFailed);
+        }
+        const auto toolchain = std::move(*toolchainRes);
+
+        // Cross-compiled tests cannot run on host
+        if (!toolchain.target.isNativeRunnable(toolchain.host))
+        {
+            logger_.error(
+                "cannot run tests for cross target '" + toolchain.target.toString() +
+                "' on host '" + toolchain.host.toString() + "'"
+            );
+            return toInt(ExitCode::generalError);
+        }
+
         BuildEngine engine(logger_);
         Process process;
 
@@ -559,12 +625,132 @@ namespace cippie
         return restoreProject(commandLine);
     }
 
+    int Application::runDoctor(const CommandLine& commandLine)
+    {
+        std::cout << "Cippie Doctor\n";
+        std::cout << "=============\n";
+
+        const auto host = TargetTriple::detectHost();
+        std::cout << "Host triple      : " << host.toString() << "\n";
+
+        DetectOptions detectOpts{
+            .toolchainName = commandLine.toolchainName.empty()
+                ? std::optional<std::string>{}
+                : std::optional<std::string>(commandLine.toolchainName),
+            .targetTripleStr = commandLine.targetTriple
+        };
+
+        TargetTriple targetTriple = host;
+        if (commandLine.targetTriple.has_value())
+        {
+            auto tripleRes = TargetTriple::parse(*commandLine.targetTriple);
+            if (tripleRes.has_value()) targetTriple = *tripleRes;
+        }
+        std::cout << "Target triple    : " << targetTriple.toString() << "\n";
+
+        ToolchainDetector detector;
+        auto toolchainRes = detector.detect(detectOpts);
+
+        if (!toolchainRes.has_value())
+        {
+            std::cout << "Toolchain        : [NOT FOUND] " << toolchainRes.error().message << "\n";
+        }
+        else
+        {
+            const auto& tc = *toolchainRes;
+            std::cout << "Toolchain name   : " << tc.name << "\n";
+            std::cout << "Compiler family  : " << toString(tc.compilerFamily) << "\n";
+            std::cout << "Compiler (CXX)   : " << tc.cxxCompiler.string();
+            if (!tc.version.empty() && tc.version != "unknown")
+            {
+                std::cout << " (" << tc.version << ")";
+            }
+            std::cout << "\n";
+            std::cout << "Compiler (CC)    : " << tc.cCompiler.string() << "\n";
+            std::cout << "Linker           : " << tc.linker.string() << "\n";
+            std::cout << "Archiver         : " << tc.archiver.string() << "\n";
+
+            if (!tc.sysroot.empty())
+            {
+                std::cout << "Sysroot          : " << tc.sysroot.string() << "\n";
+            }
+            else
+            {
+                std::cout << "Sysroot          : (none)\n";
+            }
+        }
+
+        // Parallel jobs
+        const unsigned int hwThreads = std::thread::hardware_concurrency();
+        std::cout << "Parallel jobs    : " << (commandLine.jobs > 0 ? commandLine.jobs : hwThreads) << "\n";
+
+        // Project cache
+        ProjectLocator locator;
+        const auto projectRoot = locator.locate(commandLine.workingDirectory);
+        if (projectRoot)
+        {
+            std::cout << "Project cache    : " << (*projectRoot / ".cippie").string() << "\n";
+        }
+        else
+        {
+            std::cout << "Project cache    : (no Cippiefile found)\n";
+        }
+
+        // Package cache
+        std::cout << "Package cache    : " << PackageCache::getCacheDirectory().string() << "\n";
+
+        // Toolchain config dir
+        std::cout << "Toolchain configs: " << ToolchainRegistry::getConfigDir().string() << "\n";
+
+        // Registered cross-toolchains
+        auto regRes = ToolchainRegistry::load();
+        if (regRes.has_value() && !regRes->toolchains().empty())
+        {
+            std::cout << "Cross-toolchains :\n";
+            for (const auto& tc : regRes->toolchains())
+            {
+                std::cout << "  " << tc.name << " -> " << tc.target.toString()
+                          << " (" << tc.cxxCompiler.string() << ")\n";
+            }
+        }
+        else
+        {
+            std::cout << "Cross-toolchains : (none registered)\n";
+        }
+
+        // Missing tools check
+        std::cout << "Missing tools    :\n";
+        bool anyMissing = false;
+        auto checkTool = [&](const std::string& name, const std::filesystem::path& path) {
+            std::error_code ec;
+            if (!std::filesystem::exists(path, ec))
+            {
+                std::cout << "  " << name << ": not found (" << path.string() << ")\n";
+                anyMissing = true;
+            }
+        };
+
+        if (toolchainRes.has_value())
+        {
+            const auto& tc = *toolchainRes;
+            checkTool("CXX", tc.cxxCompiler);
+            checkTool("AR", tc.archiver);
+        }
+
+        if (!anyMissing)
+        {
+            std::cout << "  (none)\n";
+        }
+
+        return toInt(ExitCode::success);
+    }
+
     void Application::printHelp() const
     {
         std::cout
             << "Cippie - C++ build system and package manager\n\n"
             << "Usage:\n"
-            << "  cippie <command> [target] [-j N] [-v] [--offline] [--locked] [-- arguments]\n\n"
+            << "  cippie <command> [target] [options] [-- arguments]\n\n"
             << "Commands:\n"
             << "  new <name>       Create a new Cippie project\n"
             << "  build            Build a target\n"
@@ -574,13 +760,16 @@ namespace cippie
             << "  add <pkg[@ver]>  Add a package dependency\n"
             << "  remove <pkg>     Remove a package dependency\n"
             << "  restore          Restore project dependencies (--offline / --locked)\n"
+            << "  doctor           Show toolchain and environment diagnostics\n"
             << "  help             Show this help\n"
             << "  version          Show the Cippie version\n\n"
             << "Options:\n"
-            << "  -j, --jobs N   Number of parallel build workers\n"
-            << "  -v, --verbose  Verbose build output\n"
-            << "  --offline      Prohibit network operations\n"
-            << "  --locked       Refuse updating lock file\n";
+            << "  -j, --jobs N         Number of parallel build workers\n"
+            << "  -v, --verbose        Verbose build output\n"
+            << "  --target <triple>    Cross-compile for target triple (e.g. aarch64-linux-gnu)\n"
+            << "  --toolchain <name>   Use named toolchain from ~/.config/cippie/toolchains/\n"
+            << "  --offline            Prohibit network operations\n"
+            << "  --locked             Refuse updating lock file\n";
     }
 
     void Application::printVersion() const

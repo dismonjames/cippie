@@ -9,56 +9,17 @@ namespace cippie
     {
         [[nodiscard]] CommandType parseCommandType(std::string_view value)
         {
-            if (value == "help" || value == "--help" || value == "-h")
-            {
-                return CommandType::help;
-            }
-
-            if (value == "version" || value == "--version" || value == "-v")
-            {
-                return CommandType::version;
-            }
-
-            if (value == "build")
-            {
-                return CommandType::build;
-            }
-
-            if (value == "run")
-            {
-                return CommandType::run;
-            }
-
-            if (value == "test")
-            {
-                return CommandType::test;
-            }
-
-            if (value == "clean")
-            {
-                return CommandType::clean;
-            }
-
-            if (value == "new")
-            {
-                return CommandType::newProject;
-            }
-
-            if (value == "add")
-            {
-                return CommandType::add;
-            }
-
-            if (value == "remove")
-            {
-                return CommandType::remove;
-            }
-
-            if (value == "restore")
-            {
-                return CommandType::restore;
-            }
-
+            if (value == "help" || value == "--help" || value == "-h") return CommandType::help;
+            if (value == "version" || value == "--version") return CommandType::version;
+            if (value == "build") return CommandType::build;
+            if (value == "run") return CommandType::run;
+            if (value == "test") return CommandType::test;
+            if (value == "clean") return CommandType::clean;
+            if (value == "new") return CommandType::newProject;
+            if (value == "add") return CommandType::add;
+            if (value == "remove") return CommandType::remove;
+            if (value == "restore") return CommandType::restore;
+            if (value == "doctor") return CommandType::doctor;
             return CommandType::unknown;
         }
 
@@ -68,14 +29,8 @@ namespace cippie
             unsigned int parsed = 0;
             auto res = std::from_chars(val.data(), val.data() + val.size(), parsed);
             if (res.ec != std::errc() || res.ptr != val.data() + val.size() || parsed == 0)
-            {
                 return false;
-            }
-            if (parsed > 128)
-            {
-                parsed = 128;
-            }
-            outJobs = parsed;
+            outJobs = std::min(parsed, 128u);
             return true;
         }
     }
@@ -89,10 +44,7 @@ namespace cippie
         CommandLine result;
         result.workingDirectory = workingDirectory;
 
-        if (argc < 2)
-        {
-            return result;
-        }
+        if (argc < 2) return result;
 
         result.type = parseCommandType(argv[1]);
         bool forwardingArguments = false;
@@ -113,70 +65,55 @@ namespace cippie
                 continue;
             }
 
-            if (argument == "-v" || argument == "--verbose")
-            {
-                result.verbose = true;
-                continue;
-            }
+            if (argument == "-v" || argument == "--verbose") { result.verbose = true; continue; }
+            if (argument == "--cache") { result.cleanCacheOnly = true; continue; }
+            if (argument == "--all") { result.cleanAll = true; continue; }
+            if (argument == "--offline") { result.offline = true; continue; }
+            if (argument == "--locked") { result.locked = true; continue; }
 
-            if (argument == "--cache")
+            if ((argument == "-j" || argument == "--jobs") && index + 1 < argc)
             {
-                result.cleanCacheOnly = true;
-                continue;
-            }
-
-            if (argument == "--all")
-            {
-                result.cleanAll = true;
-                continue;
-            }
-
-            if (argument == "--offline")
-            {
-                result.offline = true;
-                continue;
-            }
-
-            if (argument == "--locked")
-            {
-                result.locked = true;
-                continue;
-            }
-
-            if (argument == "-j" || argument == "--jobs")
-            {
-                if (index + 1 < argc)
-                {
-                    ++index;
-                    if (!parseJobCount(argv[index], result.jobs))
-                    {
-                        result.type = CommandType::unknown;
-                    }
-                }
-                else
-                {
+                ++index;
+                if (!parseJobCount(argv[index], result.jobs))
                     result.type = CommandType::unknown;
-                }
                 continue;
             }
-
             if (argument.starts_with("-j"))
             {
-                std::string_view numStr = argument.substr(2);
-                if (!parseJobCount(numStr, result.jobs))
-                {
+                if (!parseJobCount(argument.substr(2), result.jobs))
                     result.type = CommandType::unknown;
-                }
+                continue;
+            }
+            if (argument.starts_with("--jobs="))
+            {
+                if (!parseJobCount(argument.substr(7), result.jobs))
+                    result.type = CommandType::unknown;
                 continue;
             }
 
-            if (argument.starts_with("--jobs="))
+            // --target <triple>
+            if (argument == "--target" && index + 1 < argc)
             {
-                std::string_view numStr = argument.substr(7);
-                if (!parseJobCount(numStr, result.jobs))
-                {
-                    result.type = CommandType::unknown;
-                }
+                ++index;
+                result.targetTriple = std::string(argv[index]);
+                continue;
+            }
+            if (argument.starts_with("--target="))
+            {
+                result.targetTriple = std::string(argument.substr(9));
+                continue;
+            }
+
+            // --toolchain <name>
+            if (argument == "--toolchain" && index + 1 < argc)
+            {
+                ++index;
+                result.toolchainName = std::string(argv[index]);
+                continue;
+            }
+            if (argument.starts_with("--toolchain="))
+            {
+                result.toolchainName = std::string(argument.substr(12));
                 continue;
             }
 

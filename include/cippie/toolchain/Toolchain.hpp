@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace cippie
 {
@@ -19,7 +20,11 @@ namespace cippie
         std::filesystem::path archiver{"ar"};
 
         std::string version;
-        TargetTriple host{TargetTriple::detectHost()};
-        TargetTriple target{TargetTriple::detectHost()};
+        TargetTriple host;
+        TargetTriple target;
+        std::filesystem::path sysroot;
+
+        std::vector<std::string> defaultCompileOptions;
+        std::vector<std::string> defaultLinkOptions;
     };
 }
